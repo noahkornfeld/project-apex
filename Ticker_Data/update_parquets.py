@@ -62,13 +62,15 @@ print(f"  Rows: {len(df_macro):,}")
 
 # Determine update range
 start_date = max(last_bars_date, last_macro_date) + timedelta(days=1)
-end_date = datetime.now()
+# Set end_date to yesterday to avoid fetching incomplete data from today
+yesterday = datetime.now() - timedelta(days=1)
+end_date = yesterday
 
 print(f"\nUpdate range:")
 print(f"  Start: {start_date.date()}")
-print(f"  End:   {end_date.date()}")
+print(f"  End:   {end_date.date()} (yesterday - markets closed)")
 
-if start_date >= end_date:
+if start_date > end_date:
     print("\n✓ Data is already up to date!")
     sys.exit(0)
 
