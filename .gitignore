@@ -49,7 +49,6 @@ Ticker_Data/extreme_returns_to_research.csv
 Ticker_Data/missing_sector_tickers.txt
 
 # Keep parquet files and essential CSVs
-!Ticker_Data/*.parquet
 !Ticker_Data/NDX_Membership.csv
 !Ticker_Data/Ticker_Sector_AnnualUpdate.csv
 
