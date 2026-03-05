@@ -1,0 +1,59 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Jupyter Notebook
+.ipynb_checkpoints
+*.ipynb
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Project Specific - Large CSV files (source data)
+Ticker_Data/Calc_Daily_Ticker_Prices.csv
+Ticker_Data/Complete_Daily_Prices.csv
+Ticker_Data/Daily_Ticker_Prices.csv
+Ticker_Data/Recent_2025_Prices.csv
+Ticker_Data/Macro_Features.csv
+Ticker_Data/TickerList.csv
+Ticker_Data/extreme_returns_to_research.csv
+Ticker_Data/missing_sector_tickers.txt
+
+# Keep parquet files and essential CSVs
+!Ticker_Data/*.parquet
+!Ticker_Data/NDX_Membership.csv
+!Ticker_Data/Ticker_Sector_AnnualUpdate.csv
+
+# Temporary files
+*.tmp
+*.log
+*.bak
