@@ -16,14 +16,21 @@ Usage:
 """
 
 import sys
+import os
 import pandas as pd
 import numpy as np
-import yfinance as yf
 from datetime import datetime, timedelta
 
-sys.stdout.reconfigure(encoding='utf-8')
+# Determine DATA_DIR dynamically (script location)
+DATA_DIR = os.path.dirname(os.path.abspath(__file__))
 
-DATA_DIR = r'C:\Users\lhdee\OneDrive\Desktop\Project_Apex\Ticker_Data'
+# Try to import yfinance, provide helpful error if missing
+try:
+    import yfinance as yf
+except ImportError:
+    print("ERROR: yfinance not found. Install with:")
+    print("  python3 -m pip install yfinance")
+    sys.exit(1)
 
 print("="*80)
 print("AUTOMATED PARQUET UPDATE")
@@ -38,7 +45,7 @@ print("1. CHECKING EXISTING DATA")
 print("="*80)
 
 # Load daily_bars
-daily_bars_path = f'{DATA_DIR}\\daily_bars.parquet'
+daily_bars_path = os.path.join(DATA_DIR, 'daily_bars.parquet')
 df_bars = pd.read_parquet(daily_bars_path)
 last_bars_date = df_bars['date'].max()
 print(f"\ndaily_bars.parquet:")
@@ -46,7 +53,7 @@ print(f"  Last date: {last_bars_date.date()}")
 print(f"  Rows: {len(df_bars):,}")
 
 # Load macro_features
-macro_path = f'{DATA_DIR}\\macro_features.parquet'
+macro_path = os.path.join(DATA_DIR, 'macro_features.parquet')
 df_macro = pd.read_parquet(macro_path)
 last_macro_date = df_macro['date'].max()
 print(f"\nmacro_features.parquet:")
@@ -73,7 +80,7 @@ print("2. GETTING CURRENT NDX MEMBERS")
 print("="*80)
 
 # Load membership
-ndx_path = f'{DATA_DIR}\\ndx_membership.parquet'
+ndx_path = os.path.join(DATA_DIR, 'ndx_membership.parquet')
 df_ndx = pd.read_parquet(ndx_path)
 
 # Get most recent snapshot
@@ -254,8 +261,26 @@ print("5. APPENDING TO daily_bars.parquet")
 print("="*80)
 
 if len(new_bars_list) > 0:
-    # Combine old and new
-    df_bars_combined = pd.concat([df_bars, df_new_bars], ignore_index=True)
+    # Align columns before concatenating
+    existing_cols = df_bars.columns.tolist()
+    new_cols = df_new_bars.columns.tolist()
+    
+    # Add missing columns to new data (fill with None)
+    for col in existing_cols:
+        if col not in new_cols:
+            df_new_bars[col] = None
+    
+    # Reorder new data columns to match existing
+    df_new_bars = df_new_bars[existing_cols]
+    
+    # Convert both to same dtype structure by going through dict
+    # This ensures internal pandas array structures match
+    df_bars_dict = df_bars.to_dict('records')
+    df_new_bars_dict = df_new_bars.to_dict('records')
+    
+    # Combine and recreate dataframe
+    combined_records = df_bars_dict + df_new_bars_dict
+    df_bars_combined = pd.DataFrame(combined_records)
     df_bars_combined = df_bars_combined.sort_values(['security_id', 'date']).reset_index(drop=True)
     
     # Remove duplicates (keep last)
@@ -300,8 +325,13 @@ if df_new_macro is not None and len(df_new_macro) > 0:
     # Reorder new data to match existing
     df_new_macro = df_new_macro[existing_cols]
     
-    # Combine
-    df_macro_combined = pd.concat([df_macro, df_new_macro], ignore_index=True)
+    # Convert both to same dtype structure by going through dict
+    df_macro_dict = df_macro.to_dict('records')
+    df_new_macro_dict = df_new_macro.to_dict('records')
+    
+    # Combine and recreate dataframe
+    combined_records = df_macro_dict + df_new_macro_dict
+    df_macro_combined = pd.DataFrame(combined_records)
     df_macro_combined = df_macro_combined.sort_values('date').reset_index(drop=True)
     
     # Remove duplicates
