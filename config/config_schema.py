@@ -13,7 +13,7 @@ Usage:
 
     config = ProjectConfig.from_yaml("config/master_config.yaml")
     print(config.sac.gamma)          # 0.975
-    print(config.architecture.K_max) # 102
+    print(config.architecture.K_max) # 110
 """
 
 from dataclasses import dataclass, field, asdict
@@ -173,7 +173,7 @@ class ArchitectureConfig:
     """Model Architecture Parameters — Bible §4, §7"""
 
     # §4.1  Observation Space Dimensions
-    K_max: int = 102
+    K_max: int = 110
     L: int = 60                           # Lookback in weeks (§0.1 notation)
     F: int = 26                           # 18 TS + 8 CS features
 

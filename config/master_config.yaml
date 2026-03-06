@@ -91,7 +91,7 @@ optimizer:
 
 architecture:
   # §4.1  Observation Space Dimensions  (§0.2 table)
-  K_max: 102                         # Max padded asset dimension; ≥ max historical NDX size
+  K_max: 110                       # Max padded asset dimension; ≥ max historical NDX size
   L: 60                              # Observation lookback window in weeks
   F: 26                              # Per-asset features per time step (18 TS + 8 CS)
 
@@ -409,7 +409,7 @@ random_seed:
 unresolved:
   lr_scheduler: null                 # "implement cosine annealing if performance peaks early" — §13.1
   D_global: null                     # Exact dimension TBD; = portfolio_state(8) + benchmark(3) + macro(varies)
-  K_max_note: "3 historical snapshots have 103–104 members; may need K_max ≥ 105"
+  K_max_note: "Set to 110 to safely cover historical NDX peaks of 103-104 members with headroom"
   attn_num_layers_note: "Bible shows [2 — bracket may indicate unresolved"
   sigma_mkt_window_note: "Window length marked TBD in §6"
   sigma_port_window_note: "Window length marked TBD in §6"
