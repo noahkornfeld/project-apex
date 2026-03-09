@@ -1,13 +1,13 @@
 """
 Per-Asset Time-Series Features — Bible §3.1
 ============================================
-Computes all 18 per-asset features for a single security's price history.
+Computes all 17 per-asset features for a single security's price history.
 
 All computations are strictly causal: at time t, only data up to and
 including t is used. Pandas rolling() windows enforce this automatically.
 
 Feature list (order matches config per_asset_ts_features):
-    open, close, volume, adj_close, log_ret,
+    open, close, volume, log_ret,
     ret_1w, ret_4w, ret_12w,
     vol_1w, vol_4w, vol_52w,
     volume_z_4w, beta_26w_mkt, rel_strength_4w,
@@ -89,7 +89,7 @@ def compute_per_asset_features(
     qqq_log_ret: pd.Series,
 ) -> pd.DataFrame:
     """
-    Compute all 18 §3.1 per-asset time-series features for one security.
+    Compute all 17 §3.1 per-asset time-series features for one security.
 
     Args:
         bars         : DataFrame with DatetimeIndex and columns
@@ -99,7 +99,7 @@ def compute_per_asset_features(
         qqq_log_ret  : DatetimeIndex series of QQQ daily log returns.
 
     Returns:
-        DataFrame with DatetimeIndex matching `bars.index` and 18 feature
+        DataFrame with DatetimeIndex matching `bars.index` and 17 feature
         columns in the canonical order defined by §3.1.1.
         NaN appears in early rows where rolling windows are not yet full —
         the normalizer and panel builder handle these via forward-fill or 0.
@@ -119,7 +119,7 @@ def compute_per_asset_features(
     # --- Realized volatility (annualized) ---------------------------------
     vol_1w  = log_ret.rolling(DAYS_1W,  min_periods=DAYS_1W).std()  * ANNUALIZE
     vol_4w  = log_ret.rolling(DAYS_4W,  min_periods=DAYS_4W).std()  * ANNUALIZE
-    vol_52w = log_ret.rolling(DAYS_52W, min_periods=DAYS_52W).std() * ANNUALIZE
+    vol_52w = log_ret.rolling(DAYS_52W, min_periods=DAYS_4W).std() * ANNUALIZE
 
     # --- Volume z-score (4-week causal) -----------------------------------
     vol_mean = volume.rolling(DAYS_4W, min_periods=DAYS_4W).mean()
@@ -156,7 +156,6 @@ def compute_per_asset_features(
             "open":                open_,
             "close":               close,
             "volume":              volume,
-            "adj_close":           close,       # canonical: close already adj.
             "log_ret":             log_ret,
             "ret_1w":              ret_1w,
             "ret_4w":              ret_4w,
@@ -192,7 +191,7 @@ def compute_all_securities_features(
         qqq_log_ret  : QQQ daily log return (DatetimeIndex).
 
     Returns:
-        dict mapping security_id (int) → feature DataFrame (DatetimeIndex, 18 cols).
+        dict mapping security_id (int) → feature DataFrame (DatetimeIndex, 17 cols).
     """
     all_features: dict = {}
     grouped = daily_bars.groupby("security_id", sort=True)

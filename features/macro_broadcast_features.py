@@ -84,8 +84,8 @@ def compute_macro_broadcast_features(macro_df: pd.DataFrame) -> pd.DataFrame:
         out["vix_change"] = np.nan
 
     # --- Yields ------------------------------------------------------------
-    y10 = _find_column(df, ["Yield_10Y", "10Y_Close", "TNX_Close", "^TNX_Close", "yield_10y"])
-    y3m = _find_column(df, ["Yield_3M",  "3M_Close",  "IRX_Close", "^IRX_Close", "yield_3m"])
+    y10 = _find_column(df, ["10Y_Yield_Close", "Yield_10Y", "10Y_Close", "TNX_Close", "^TNX_Close", "yield_10y"])
+    y3m = _find_column(df, ["3M_Yield_Close",  "Yield_3M",  "3M_Close",  "IRX_Close", "^IRX_Close", "yield_3m"])
     ysp = _find_column(df, ["Yield_Spread", "yield_spread", "Yield_spread"])
 
     out["yield_10y"]   = df[y10].values  if y10 else np.nan

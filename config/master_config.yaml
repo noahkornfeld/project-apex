@@ -93,7 +93,7 @@ architecture:
   # §4.1  Observation Space Dimensions  (§0.2 table)
   K_max: 110                       # Max padded asset dimension; ≥ max historical NDX size
   L: 60                              # Observation lookback window in weeks
-  F: 26                              # Per-asset features per time step (18 TS + 8 CS)
+  F: 25                              # Per-asset features per time step (17 TS + 8 CS)
 
   # §7.4  TCN Encoder
   tcn_levels: 5                      # Dilated conv layers; receptive field ≥ L
@@ -182,12 +182,11 @@ features:
   norm_window_weeks: 52              # Rolling z-score window (training-fold stats)
   norm_clip_threshold: 4.0           # Clip normalized features to ±threshold
 
-  # §3.1.1  Per-Asset Time-Series Features  (F_ts = 18)
+  # §3.1.1  Per-Asset Time-Series Features  (F_ts = 17)
   per_asset_ts_features:
     - open
     - close
     - volume
-    - adj_close
     - log_ret
     - ret_1w
     - ret_4w
@@ -261,7 +260,7 @@ evaluation:
 
   # §9.1  Fold Definitions
   folds:
-    - { fold: 1, train_start: "2004-01-01", train_end: "2009-12-31", test_start: "2010-01-01", test_end: "2011-12-31" }
+    - { fold: 1, train_start: "2005-01-01", train_end: "2009-12-31", test_start: "2010-01-01", test_end: "2011-12-31" }
     - { fold: 2, train_start: "2006-01-01", train_end: "2011-12-31", test_start: "2012-01-01", test_end: "2013-12-31" }
     - { fold: 3, train_start: "2008-01-01", train_end: "2013-12-31", test_start: "2014-01-01", test_end: "2015-12-31" }
     - { fold: 4, train_start: "2010-01-01", train_end: "2015-12-31", test_start: "2016-01-01", test_end: "2017-12-31" }

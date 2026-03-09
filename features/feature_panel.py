@@ -9,7 +9,7 @@ Output tensors:
     mask_panel    : [T, K_max]     float32  — 1.0=tradeable, 0.0=inactive/padded
     active_ids    : [T, K_max]     int64    — security_id per slot; -1=inactive
 
-F = 26 (18 TS + 8 CS)
+F = 25 (17 TS + 8 CS)
 D_global = 9 macro + 3 benchmark + 8 portfolio-state = 20
 
 Causality guarantees:
@@ -46,7 +46,7 @@ from features.portfolio_state_features import (
 from features.normalizers import CausalPerAssetNormalizer, clip_features
 
 TS_FEATURE_NAMES = [
-    "open", "close", "volume", "adj_close", "log_ret",
+    "open", "close", "volume", "log_ret",
     "ret_1w", "ret_4w", "ret_12w",
     "vol_1w", "vol_4w", "vol_52w",
     "volume_z_4w", "beta_26w_mkt", "rel_strength_4w",
@@ -60,14 +60,46 @@ CS_FEATURE_NAMES = [
 ]
 ALL_ASSET_FEATURE_NAMES = TS_FEATURE_NAMES + CS_FEATURE_NAMES
 
-F_TS    = len(TS_FEATURE_NAMES)   # 18
+F_TS    = len(TS_FEATURE_NAMES)   # 17
 F_CS    = len(CS_FEATURE_NAMES)   # 8
-F_TOTAL = F_TS + F_CS              # 26
+F_TOTAL = F_TS + F_CS              # 25
 
 D_MACRO     = len(MACRO_FEATURE_NAMES)          # 9
 D_BENCHMARK = len(BENCHMARK_FEATURE_NAMES)      # 3
 D_PORT      = len(PORTFOLIO_STATE_FEATURE_NAMES) # 8
 D_GLOBAL    = D_MACRO + D_BENCHMARK + D_PORT    # 20
+
+
+# ---------------------------------------------------------------------------
+# Tradeability lookup helper
+# ---------------------------------------------------------------------------
+
+def build_tradeability_lookup(daily_bars: pd.DataFrame) -> dict:
+    """
+    Build a (security_id, date) -> bool lookup for §2.4.1 tradeability.
+
+    An asset is tradeable on date t only if ALL of the following hold:
+        - close(t)  is finite and > 0
+        - volume(t) is finite and > 0
+        - open(t+1) is finite and > 0  (next row in this security's bars)
+    """
+    bars = daily_bars[["security_id", "date", "open", "close", "volume"]].copy()
+    bars["date"] = pd.to_datetime(bars["date"])
+    bars = bars.sort_values(["security_id", "date"]).reset_index(drop=True)
+
+    bars["next_open"] = bars.groupby("security_id")["open"].shift(-1)
+
+    bars["is_tradeable"] = (
+        bars["close"].notna()    & (bars["close"]    > 0) &
+        bars["volume"].notna()   & (bars["volume"]   > 0) &
+        bars["next_open"].notna() & (bars["next_open"] > 0)
+    )
+
+    return dict(zip(
+        zip(bars["security_id"].astype(int).tolist(),
+            pd.DatetimeIndex(bars["date"]).tolist()),
+        bars["is_tradeable"].tolist(),
+    ))
 
 
 # ---------------------------------------------------------------------------
@@ -133,12 +165,15 @@ def _pack_day_into_slot(
     cs_feat: Dict[int, pd.DataFrame],
     K_max: int,
     clip: float,
+    tradeable_lookup: Optional[dict] = None,
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     """
     Pack one trading day's features into [K_max, F], mask [K_max], ids [K_max].
 
     Slot assignment: sorted by security_id for determinism.
-    Inactive slots → 0.0 (features), 0.0 (mask), -1 (active_ids).
+    If tradeable_lookup is provided, only assets passing §2.4.1 tradeability
+    (valid close, volume, and next-day open) are assigned slots.
+    Inactive / non-tradeable slots → 0.0 (features), 0.0 (mask), -1 (ids).
     """
     x_day    = np.zeros((K_max, F_TOTAL), dtype=np.float32)
     mask_day = np.zeros(K_max, dtype=np.float32)
@@ -151,7 +186,12 @@ def _pack_day_into_slot(
         if slot >= K_max:
             break
 
-        # --- TS features (18) --------------------------------------------
+        # --- §2.4.1 tradeability gate ------------------------------------
+        if tradeable_lookup is not None:
+            if not tradeable_lookup.get((int(sid), date), False):
+                continue
+
+        # --- TS features (17) --------------------------------------------
         ts_vals = np.zeros(F_TS, dtype=np.float32)
         if sid in ts_norm and date in ts_norm[sid].index:
             row = ts_norm[sid].loc[date]
@@ -195,7 +235,7 @@ class FeaturePanelBuilder:
     def __init__(
         self,
         data_dir: str = "Ticker_Data",
-        K_max: int = 102,
+        K_max: int = 110,
         norm_window_weeks: int = 52,
         clip: float = 4.0,
     ):
@@ -258,8 +298,11 @@ class FeaturePanelBuilder:
         if verbose:
             print("\n[1/6] Loading parquet files...")
         daily_bars, ndx_df, macro_df, calendar_df = self._load_data()
+        tradeable_lookup = build_tradeability_lookup(daily_bars)
         if verbose:
             print(f"    daily_bars  : {len(daily_bars):,} rows")
+            excluded = sum(1 for v in tradeable_lookup.values() if not v)
+            print(f"    Non-tradeable asset-days (gated): {excluded:,}")
             print(f"    membership  : {len(ndx_df):,} rows")
             print(f"    macro       : {len(macro_df):,} rows")
             print(f"    calendar    : {len(calendar_df):,} trading days")
@@ -348,7 +391,7 @@ class FeaturePanelBuilder:
             if len(active_sids) > 0:
                 x_day, mask_day, ids_day = _pack_day_into_slot(
                     tday_ts, active_sids, ts_norm, cs_feat,
-                    self.K_max, self.clip,
+                    self.K_max, self.clip, tradeable_lookup,
                 )
                 x_panel[t_idx]    = x_day
                 mask_panel[t_idx] = mask_day
@@ -477,7 +520,7 @@ if __name__ == "__main__":
     parser.add_argument("--data_dir",  default="Ticker_Data", help="Path to Ticker_Data folder")
     parser.add_argument("--out_dir",   default="Ticker_Data", help="Output directory for panel")
     parser.add_argument("--norm_end",  default=None,          help="Normalization fit end date (ISO)")
-    parser.add_argument("--K_max",     type=int, default=102)
+    parser.add_argument("--K_max",     type=int, default=110)
     parser.add_argument("--clip",      type=float, default=4.0)
     args = parser.parse_args()
 

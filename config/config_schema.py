@@ -175,7 +175,7 @@ class ArchitectureConfig:
     # §4.1  Observation Space Dimensions
     K_max: int = 110
     L: int = 60                           # Lookback in weeks (§0.1 notation)
-    F: int = 26                           # 18 TS + 8 CS features
+    F: int = 25                           # 17 TS + 8 CS features
 
     # §7.4  TCN Encoder
     tcn_levels: int = 5
@@ -342,9 +342,9 @@ class FeatureConfig:
     norm_window_weeks: int = 52
     norm_clip_threshold: float = 4.0
 
-    # §3.1.1  Per-Asset Time-Series Features  (F_ts = 18)
+    # §3.1.1  Per-Asset Time-Series Features  (F_ts = 17)
     per_asset_ts_features: List[str] = field(default_factory=lambda: [
-        "open", "close", "volume", "adj_close", "log_ret",
+        "open", "close", "volume", "log_ret",
         "ret_1w", "ret_4w", "ret_12w",
         "vol_1w", "vol_4w", "vol_52w",
         "volume_z_4w", "beta_26w_mkt", "rel_strength_4w",
@@ -394,8 +394,8 @@ class FeatureConfig:
     def validate(self):
         assert self.norm_window_weeks > 0, "norm_window_weeks must be > 0"
         assert self.norm_clip_threshold > 0, "norm_clip_threshold must be > 0"
-        assert len(self.per_asset_ts_features) == 18, \
-            f"Expected 18 per-asset TS features (Bible §3.1.1), got {len(self.per_asset_ts_features)}"
+        assert len(self.per_asset_ts_features) == 17, \
+            f"Expected 17 per-asset TS features (Bible §3.1.1), got {len(self.per_asset_ts_features)}"
         assert len(self.cross_sectional_features) == 8, \
             f"Expected 8 cross-sectional features (Bible §3.2.1), got {len(self.cross_sectional_features)}"
         assert len(self.macro_instruments) == 9, \
@@ -414,7 +414,7 @@ class FeatureConfig:
 class FoldConfig:
     """Single walk-forward fold definition — Bible §9.1"""
     fold: int = 1
-    train_start: str = "2004-01-01"
+    train_start: str = "2005-01-01"
     train_end: str = "2009-12-31"
     test_start: str = "2010-01-01"
     test_end: str = "2011-12-31"
@@ -432,7 +432,7 @@ class EvaluationConfig:
 
     # §9.1  Fold Definitions
     folds: List[Dict[str, Any]] = field(default_factory=lambda: [
-        {"fold": 1, "train_start": "2004-01-01", "train_end": "2009-12-31",
+        {"fold": 1, "train_start": "2005-01-01", "train_end": "2009-12-31",
          "test_start": "2010-01-01", "test_end": "2011-12-31"},
         {"fold": 2, "train_start": "2006-01-01", "train_end": "2011-12-31",
          "test_start": "2012-01-01", "test_end": "2013-12-31"},

@@ -125,7 +125,7 @@ def compute_cross_sectional_features(
             volume_z_vals[i] = row.get("volume_z_4w", np.nan)
 
         # --- Cross-sectional computations --------------------------------
-        ret_rank_4w            = _cs_rank(ret_4w_vals)
+        ret_rank_4w            = _cs_zscore(_cs_rank(ret_4w_vals))
         ret_z_4w               = _cs_zscore(ret_4w_vals)
         ret_z_12w              = _cs_zscore(ret_12w_vals)
         vol_z_4w               = _cs_zscore(vol_4w_vals)
@@ -133,13 +133,19 @@ def compute_cross_sectional_features(
         ret_z_4w_sector        = _sector_zscore(ret_4w_vals, sector_codes)
         vol_z_4w_sector        = _sector_zscore(vol_4w_vals, sector_codes)
 
-        # Sector-mean residual
-        sector_mean_ret = np.zeros_like(ret_4w_vals)
+        # Sector-mean residual standardised by sector std
+        sector_mean_ret = np.zeros_like(ret_4w_vals, dtype=float)
+        sector_std_ret  = np.ones_like(ret_4w_vals,  dtype=float)
         for sector in np.unique(sector_codes):
-            mask = sector_codes == sector
-            v    = ret_4w_vals[mask]
-            sector_mean_ret[mask] = np.nanmean(v) if np.isfinite(v).any() else 0.0
-        momentum_sector_residual = ret_4w_vals - sector_mean_ret
+            mask   = sector_codes == sector
+            v      = ret_4w_vals[mask].astype(float)
+            finite = v[np.isfinite(v)]
+            if len(finite) >= 2:
+                sector_mean_ret[mask] = float(finite.mean())
+                sector_std_ret[mask]  = max(float(finite.std()), EPS)
+            elif len(finite) == 1:
+                sector_mean_ret[mask] = float(finite[0])
+        momentum_sector_residual = (ret_4w_vals - sector_mean_ret) / sector_std_ret
 
         # --- Store results per security -----------------------------------
         for i, sid in enumerate(active_sids):
