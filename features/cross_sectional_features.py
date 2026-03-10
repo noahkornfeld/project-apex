@@ -89,7 +89,7 @@ def compute_cross_sectional_features(
 
     Args:
         ts_features     : {security_id: DataFrame(DatetimeIndex, 18 TS features)}.
-                          Only 'ret_4w', 'ret_12w', 'vol_4w', 'volume_z_4w' are used.
+                          Only 'ret_4w', 'ret_13w', 'vol_4w', 'volume_z_4w' are used.
         active_membership: DataFrame with columns [date, security_id, sector_code].
                            Contains one row per (date, active_security) using
                            the as-of membership rule from Phase 2.
@@ -108,7 +108,7 @@ def compute_cross_sectional_features(
 
         # Gather raw values for this date from pre-computed TS features
         ret_4w_vals    = np.full(len(active_sids), np.nan)
-        ret_12w_vals   = np.full(len(active_sids), np.nan)
+        ret_13w_vals   = np.full(len(active_sids), np.nan)
         vol_4w_vals    = np.full(len(active_sids), np.nan)
         volume_z_vals  = np.full(len(active_sids), np.nan)
 
@@ -120,14 +120,14 @@ def compute_cross_sectional_features(
                 continue
             row = feat_df.loc[date]
             ret_4w_vals[i]   = row.get("ret_4w",    np.nan)
-            ret_12w_vals[i]  = row.get("ret_12w",   np.nan)
+            ret_13w_vals[i]  = row.get("ret_13w",   np.nan)
             vol_4w_vals[i]   = row.get("vol_4w",    np.nan)
             volume_z_vals[i] = row.get("volume_z_4w", np.nan)
 
         # --- Cross-sectional computations --------------------------------
-        ret_rank_4w            = _cs_zscore(_cs_rank(ret_4w_vals))
+        ret_rank_4w            = _cs_rank(ret_4w_vals)
         ret_z_4w               = _cs_zscore(ret_4w_vals)
-        ret_z_12w              = _cs_zscore(ret_12w_vals)
+        ret_z_13w              = _cs_zscore(ret_13w_vals)
         vol_z_4w               = _cs_zscore(vol_4w_vals)
         volume_z_cs_4w         = _cs_zscore(volume_z_vals)
         ret_z_4w_sector        = _sector_zscore(ret_4w_vals, sector_codes)
@@ -156,7 +156,7 @@ def compute_cross_sectional_features(
                 {
                     "ret_rank_4w":            ret_rank_4w[i],
                     "ret_z_4w":               ret_z_4w[i],
-                    "ret_z_12w":              ret_z_12w[i],
+                    "ret_z_13w":              ret_z_13w[i],
                     "vol_z_4w":               vol_z_4w[i],
                     "volume_z_cs_4w":         volume_z_cs_4w[i],
                     "ret_z_4w_sector":        ret_z_4w_sector[i],

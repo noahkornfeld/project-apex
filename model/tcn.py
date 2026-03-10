@@ -60,7 +60,7 @@ class _TCNResBlock(nn.Module):
         h = self.norm(x.transpose(1, 2)).transpose(1, 2)   # Pre-LN on channel dim
         h = F.silu(self.conv1(h))
         h = self.conv2(h)
-        return F.silu(h + self.skip(x))
+        return h + self.skip(x)
 
 
 class CausalTCN(nn.Module):

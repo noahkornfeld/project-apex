@@ -60,7 +60,7 @@ def make_model(**overrides) -> ApexActorCritic:
         actor_hidden_dims = [32, 32],
         critic_hidden_dims= [64, 64],
         n_quantiles       = N_Q,
-        log_sigma_init    = -1.0,
+        log_sigma_init    = -1.5,
     )
     kw.update(overrides)
     return ApexActorCritic(**kw)

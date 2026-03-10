@@ -47,14 +47,14 @@ from features.normalizers import CausalPerAssetNormalizer, clip_features
 
 TS_FEATURE_NAMES = [
     "open", "close", "volume", "log_ret",
-    "ret_1w", "ret_4w", "ret_12w",
+    "ret_1w", "ret_4w", "ret_13w",
     "vol_1w", "vol_4w", "vol_52w",
     "volume_z_4w", "beta_26w_mkt", "rel_strength_4w",
     "vol_ratio_1w_4w", "RSI_14",
     "bollinger_percent_b", "bollinger_bandwidth",
 ]
 CS_FEATURE_NAMES = [
-    "ret_rank_4w", "ret_z_4w", "ret_z_12w", "vol_z_4w",
+    "ret_rank_4w", "ret_z_4w", "ret_z_13w", "vol_z_4w",
     "volume_z_cs_4w", "ret_z_4w_sector", "vol_z_4w_sector",
     "momentum_sector_residual",
 ]

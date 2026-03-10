@@ -117,9 +117,13 @@ architecture:
   # §7.3  Embeddings
   ticker_emb_dim: 32                 # Learnable nn.Embedding keyed by security_id
   sector_emb_dim: 8                  # Learnable nn.Embedding keyed by GICS sector_code
+  num_sectors: 12                    # Vocab size = 11 GICS sectors + 1 unknown slot (GICS_TO_IDX)
 
   # §7.6  Actor Head MLP
   actor_hidden_dims: [128, 128]      # SiLU activations
+  log_sigma_init: -1.5               # Initial log-std of action noise (σ ≈ 0.22); §4.4
+  log_sigma_min: -5.0                # Clamp floor — prevents fully deterministic policy; §4.4
+  log_sigma_max: 1.0                 # Clamp ceiling — caps maximum exploration noise; §4.4
 
   # §7.8  Critic Head MLP (twin Q1, Q2)
   critic_hidden_dims: [256, 256]     # SiLU activations; 256 hidden dims
@@ -419,8 +423,8 @@ unresolved:
 # =============================================================================
 
 metadata:
-  config_version: "2.0"
-  bible_version: "v3"
+  config_version: "3.0"
+  bible_version: "v5"
   last_updated: "2026-03-05"
   description: "Master configuration — all hyperparameters from Bible §0.2 plus architectural and pipeline parameters"
   bible_sections_covered:

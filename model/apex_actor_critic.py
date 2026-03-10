@@ -136,9 +136,9 @@ class ApexActorCritic(nn.Module):
     actor_hidden_dims: hidden dims for per-asset actor MLP       (default [128,128])
     critic_hidden_dims: hidden dims for critic MLP               (default [256,256])
     n_quantiles      : N for distributional critic               (default 32)
-    log_sigma_init   : initial log of action noise std           (default -1.0)
-    log_sigma_min    : clamp floor on log_sigma                  (default -3.0)
-    log_sigma_max    : clamp ceiling on log_sigma                (default  0.5)
+    log_sigma_init   : initial log of action noise std           (default -1.5)
+    log_sigma_min    : clamp floor on log_sigma                  (default -5.0)
+    log_sigma_max    : clamp ceiling on log_sigma                (default  1.0)
     """
 
     def __init__(
@@ -147,7 +147,7 @@ class ApexActorCritic(nn.Module):
         F:                 int          = 25,
         D_g:               int          = 20,
         num_tickers:       int          = 512,
-        num_sectors:       int          = 16,
+        num_sectors:       int          = 12,
         ticker_emb_dim:    int          = 32,
         sector_emb_dim:    int          = 8,
         D_emb_proj:        int          = 32,
@@ -163,9 +163,9 @@ class ApexActorCritic(nn.Module):
         actor_hidden_dims: List[int]    = None,
         critic_hidden_dims: List[int]   = None,
         n_quantiles:       int          = 32,
-        log_sigma_init:    float        = -1.0,
-        log_sigma_min:     float        = -3.0,
-        log_sigma_max:     float        =  0.5,
+        log_sigma_init:    float        = -1.5,
+        log_sigma_min:     float        = -5.0,
+        log_sigma_max:     float        =  1.0,
     ):
         super().__init__()
 
@@ -487,7 +487,7 @@ class ApexActorCritic(nn.Module):
 # ---------------------------------------------------------------------------
 
 def from_config(arch_cfg: dict, D_g: int = 20,
-                num_tickers: int = 512, num_sectors: int = 16) -> ApexActorCritic:
+                num_tickers: int = 512, num_sectors: int = 12) -> ApexActorCritic:
     """Construct model from the 'architecture' section of master_config.yaml."""
     return ApexActorCritic(
         K_max             = arch_cfg.get("K_max",            110),

@@ -600,8 +600,8 @@ class UnresolvedConfig:
 class MetadataConfig:
     """Configuration Metadata"""
 
-    config_version: str = "2.0"
-    bible_version: str = "v3"
+    config_version: str = "3.0"
+    bible_version: str = "v5"
     last_updated: str = "2026-03-05"
     description: str = "Master configuration — Project Apex"
     bible_sections_covered: Optional[List[str]] = None

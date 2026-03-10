@@ -8,7 +8,7 @@ Precomputes per-slot arrays needed by the environment step():
   adv63       [T, K_max] – 63-trading-day trailing ADV (dollar volume)
   vol_252     [T, K_max] – 252-day trailing annualised return vol  (σ §5.4)
   gap_vol_252 [T, K_max] – 252-day trailing gap vol (σ_gap §5.4)
-  sector_ids  [T, K_max] – GICS sector code integer per slot (-1 inactive)
+  sector_ids  [T, K_max] – GICS sector embedding index per slot (-1 inactive)
   qqq_close   [T]        – QQQ adjusted close
   vix         [T]        – VIX level
   weekly_idx  [W]        – integer panel row indices for weekly rebalance dates
@@ -28,6 +28,24 @@ TRADING_DAYS_YEAR = 252
 ADV_WINDOW = 63       # §5.4
 VOL_WINDOW = 252      # 52 weeks ≈ 252 trading days  §5.4
 GAP_VOL_WINDOW = 252  # 52 weeks  §5.4
+
+# Mapping from raw GICS sector codes to contiguous zero-based embedding indices.
+# Must match num_sectors in the model config (len = 12: 11 sectors + 1 unknown).
+GICS_TO_IDX: Dict[int, int] = {
+    10: 0,   # Energy
+    15: 1,   # Materials
+    20: 2,   # Industrials
+    25: 3,   # Consumer Discretionary
+    30: 4,   # Consumer Staples
+    35: 5,   # Health Care
+    40: 6,   # Financials
+    45: 7,   # Information Technology
+    50: 8,   # Communication Services
+    55: 9,   # Utilities
+    60: 10,  # Real Estate
+    -1: 11,  # Unknown / inactive fallback
+}
+GICS_UNKNOWN_IDX = 11  # fallback index for unrecognised sector codes
 
 
 # ---------------------------------------------------------------------------
@@ -216,7 +234,12 @@ def _build_sector_ids(
     T: int,
     K_max: int,
 ) -> np.ndarray:
-    """Build [T, K_max] int32 array of GICS sector codes per slot per day."""
+    """Build [T, K_max] int32 array of GICS sector embedding indices per slot per day.
+
+    Raw GICS codes (e.g. 10, 45, 50) are mapped to contiguous indices via
+    GICS_TO_IDX so they are valid nn.Embedding lookup indices.  Inactive slots
+    (security_id < 0) retain -1; the model clamps these to 0 and zeros via mask.
+    """
     ndx = pd.read_parquet(ndx_path, columns=["date", "security_id", "sector_code"])
     ndx["date"] = pd.to_datetime(ndx["date"])
 
@@ -236,7 +259,8 @@ def _build_sector_ids(
         for k in range(K_max):
             sid = int(active_ids[t_idx, k])
             if sid >= 0:
-                sector_ids_arr[t_idx, k] = sid_to_sector.get(sid, -1)
+                raw_code = sid_to_sector.get(sid, -1)
+                sector_ids_arr[t_idx, k] = GICS_TO_IDX.get(raw_code, GICS_UNKNOWN_IDX)
 
     return sector_ids_arr
 

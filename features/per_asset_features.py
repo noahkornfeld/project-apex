@@ -8,7 +8,7 @@ including t is used. Pandas rolling() windows enforce this automatically.
 
 Feature list (order matches config per_asset_ts_features):
     open, close, volume, log_ret,
-    ret_1w, ret_4w, ret_12w,
+    ret_1w, ret_4w, ret_13w,
     vol_1w, vol_4w, vol_52w,
     volume_z_4w, beta_26w_mkt, rel_strength_4w,
     vol_ratio_1w_4w, RSI_14,
@@ -24,7 +24,7 @@ from typing import Optional
 # ---------------------------------------------------------------------------
 DAYS_1W  = 5
 DAYS_4W  = 20
-DAYS_12W = 60
+DAYS_13W = 65
 DAYS_26W = 130
 DAYS_52W = 260
 DAYS_RSI = 14
@@ -114,7 +114,7 @@ def compute_per_asset_features(
     # --- Multi-window log returns (causal rolling sum) --------------------
     ret_1w  = log_ret.rolling(DAYS_1W,  min_periods=DAYS_1W).sum()
     ret_4w  = log_ret.rolling(DAYS_4W,  min_periods=DAYS_4W).sum()
-    ret_12w = log_ret.rolling(DAYS_12W, min_periods=DAYS_12W).sum()
+    ret_13w = log_ret.rolling(DAYS_13W, min_periods=DAYS_13W).sum()
 
     # --- Realized volatility (annualized) ---------------------------------
     vol_1w  = log_ret.rolling(DAYS_1W,  min_periods=DAYS_1W).std()  * ANNUALIZE
@@ -159,7 +159,7 @@ def compute_per_asset_features(
             "log_ret":             log_ret,
             "ret_1w":              ret_1w,
             "ret_4w":              ret_4w,
-            "ret_12w":             ret_12w,
+            "ret_13w":             ret_13w,
             "vol_1w":              vol_1w,
             "vol_4w":              vol_4w,
             "vol_52w":             vol_52w,

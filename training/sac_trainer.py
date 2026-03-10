@@ -357,13 +357,14 @@ class SACTrainer:
         Rebuild (x, g, mask, ticker_ids, sector_ids) tensors for a batch of
         panel-row indices.
 
-        The lookback window mirrors the trading env:
-          p_start = max(0, t_idx − L)
-          x_win   = x_panel[p_start : t_idx + 1]   # length L+1 when t_idx >= L
+        The lookback window contains exactly L timesteps with t as the final
+        (most recent) step, matching the model's expected input [B, L, K, F]:
+          p_start = max(0, t_idx + 1 - L)
+          x_win   = x_panel[p_start : t_idx + 1]   # length L when t_idx >= L-1
 
         Returns
         -------
-        x         [B, L+1, K, F]
+        x         [B, L, K, F]
         g         [B, D_g]
         mask      [B, K]
         ticker_ids [B, K]  int64
@@ -374,15 +375,15 @@ class SACTrainer:
         K       = self._x_panel.shape[1]
         F       = self._x_panel.shape[2]
         D_g     = self._g_panel.shape[1]
-        win_len = L + 1     # matches env's window size when t_idx >= L
+        win_len = L         # exactly L timesteps; t is the final step
 
         x_batch = np.zeros((B, win_len, K, F), dtype=np.float32)
         g_batch = np.zeros((B, D_g),           dtype=np.float32)
 
         for i, tidx in enumerate(t_idx_arr):
             tidx = int(tidx)
-            p_start = max(0, tidx - L)
-            win = self._x_panel[p_start : tidx + 1]   # [<=L+1, K, F]
+            p_start = max(0, tidx + 1 - win_len)
+            win = self._x_panel[p_start : tidx + 1]   # [<=L, K, F]
             wl  = win.shape[0]
             x_batch[i, -wl:] = win      # right-align in fixed [L+1, K, F] buffer
 

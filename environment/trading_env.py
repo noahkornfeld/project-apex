@@ -298,7 +298,7 @@ class TradingEnvironment:
         # ----------------------------------------------------------
         # Observation at d_{t+1}
         # ----------------------------------------------------------
-        obs = self._get_obs(t_next) if not done else self._get_obs(t_next)
+        obs = {} if done else self._get_obs(t_next)
 
         # ----------------------------------------------------------
         # Reward components stub  (full reward in Phase 6)
