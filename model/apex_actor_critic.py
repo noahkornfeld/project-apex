@@ -190,12 +190,11 @@ class ApexActorCritic(nn.Module):
         # ------------------------------------------------------------------
         # §7.4  Shared CausalTCN (shared across actor + critic branches)
         # ------------------------------------------------------------------
-        tcn_in = F + D_emb_proj
         self.tcn = CausalTCN(
-            in_channels   = tcn_in,
-            channels      = tcn_channels,
-            levels        = tcn_levels,
-            kernel_size   = tcn_kernel_size,
+            in_channels  = F + D_emb_proj,
+            channels     = tcn_channels,
+            levels       = tcn_levels,
+            kernel_size  = tcn_kernel_size,
             dilation_base = tcn_dilation_base,
         )
         assert attn_d_model == tcn_channels, (

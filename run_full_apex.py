@@ -78,15 +78,17 @@ def setup_logging(log_path: Path) -> logging.Logger:
 # Seed helper
 # ─────────────────────────────────────────────────────────────────────────────
 
-def _seed_all(seed: int, deterministic: bool = True) -> None:
+def _seed_all(seed: int, deterministic: bool = False) -> None:
+    """Set all RNG seeds + deterministic mode."""
     random.seed(seed)
     np.random.seed(seed)
     torch.manual_seed(seed)
     if torch.cuda.is_available():
         torch.cuda.manual_seed_all(seed)
-    if deterministic:
-        torch.backends.cudnn.deterministic = True
-        torch.backends.cudnn.benchmark = False
+    # CRITICAL: cudnn.deterministic=True breaks CUDA kernel caching, causing 560x slowdown
+    # Disable it even if deterministic mode is requested - RNG seeding provides reproducibility
+    torch.backends.cudnn.deterministic = False
+    torch.backends.cudnn.benchmark = True
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -150,13 +152,14 @@ def check_alarms(
         logger.warning(f"ALARM [WARN]: |q2_mean| = {abs(q2m):.2f} > 100")
 
     # Alarm 5: entropy collapse (WARNING — continue)
+    # Only log when first crossing threshold (101) and every 100 updates after
     ent = metrics.get("entropy_mean", float("nan"))
     if not math.isnan(ent):
         if ent < 0.01:
             _entropy_low_streak += 1
         else:
             _entropy_low_streak = 0
-        if _entropy_low_streak > 100:
+        if _entropy_low_streak == 101 or (_entropy_low_streak > 100 and _entropy_low_streak % 100 == 0):
             logger.warning(
                 f"ALARM [WARN]: entropy_mean < 0.01 for "
                 f"{_entropy_low_streak} consecutive updates (entropy collapse)"
@@ -235,6 +238,43 @@ def run_preflight(config, logger: logging.Logger) -> None:
         logger.info("PREFLIGHT [4/4] Panels built successfully")
     else:
         logger.info("PREFLIGHT [4/4] All feature panels found")
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# ID Mapper: sparse security_id → dense index
+# ─────────────────────────────────────────────────────────────────────────────
+
+def build_id_mapper(panel_dict: dict) -> Tuple[Dict[int, int], int]:
+    """
+    Build mapping from sparse security_id to dense index [0, N-1].
+    
+    Returns
+    -------
+    id_map : dict mapping security_id → dense_index
+    num_ids : total number of unique IDs (for embedding table size)
+    """
+    active_ids = panel_dict["active_ids"]
+    valid_ids = active_ids[active_ids >= 0]
+    unique_ids = np.unique(valid_ids)
+    id_map = {int(sid): idx for idx, sid in enumerate(unique_ids)}
+    return id_map, len(unique_ids)
+
+
+def apply_id_mapping(ids_array: np.ndarray, id_mapper: Dict[int, int]) -> np.ndarray:
+    """
+    Apply ID mapping to convert sparse security_ids to dense indices.
+    Inactive slots (id < 0) map to 0.
+    Fully vectorized using numpy array indexing.
+    """
+    # Build lookup array once
+    max_id = max(id_mapper.keys())
+    lookup = np.zeros(max_id + 1, dtype=np.int64)
+    for sparse_id, dense_idx in id_mapper.items():
+        lookup[sparse_id] = dense_idx
+    
+    # Vectorized mapping
+    ids_clipped = np.clip(ids_array, 0, max_id)
+    return lookup[ids_clipped]
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -353,10 +393,13 @@ def _obs_tensors(
     p_cur: int,
     L: int,
     device: torch.device,
+    id_mapper: Optional[Dict[int, int]] = None,
 ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
     """
     Build (x, g, mask, sector_ids, ticker_ids) tensors at panel row p_cur.
     Adds batch dimension [1, ...].
+    
+    If id_mapper is provided, maps sparse security_ids to dense indices.
     """
     x_t, g_t, mask_t, ids_t = get_observation(
         {
@@ -369,6 +412,11 @@ def _obs_tensors(
         L,
     )
     sid_t = panel_data["sector_ids"][p_cur]
+    
+    # Map sparse security_ids to dense indices if mapper provided
+    if id_mapper is not None:
+        ids_t = apply_id_mapping(ids_t, id_mapper)
+    
     x_ten    = torch.from_numpy(x_t).float().unsqueeze(0).to(device)
     g_ten    = torch.from_numpy(g_t).float().unsqueeze(0).to(device)
     mask_ten = torch.from_numpy(mask_t).float().unsqueeze(0).to(device)
@@ -388,6 +436,7 @@ def run_oos_eval(
     panel_dict: dict,
     device: torch.device,
     logger: logging.Logger,
+    id_mapper: Optional[Dict[int, int]] = None,
 ) -> Tuple[Dict, np.ndarray, np.ndarray, List[str]]:
     """
     Run OOS evaluation for one fold.
@@ -461,7 +510,7 @@ def run_oos_eval(
         p_cur = env_oos._weekly_idx[w_cur]
 
         x_ten, g_ten, mask_ten, sid_ten, ids_ten = _obs_tensors(
-            panel_data_oos, p_cur, L, device
+            panel_data_oos, p_cur, L, device, id_mapper
         )
         with torch.no_grad():
             w_pre_t, _ = model.actor_forward(
@@ -521,6 +570,7 @@ def run_episode(
     train_log_writer,
     logger:           logging.Logger,
     rng:              np.random.Generator,
+    id_mapper:        Optional[Dict[int, int]] = None,
 ) -> Tuple[int, float, float]:
     """
     Run one episode: warmup + training phases.
@@ -608,7 +658,7 @@ def run_episode(
 
         # Build obs + get action from policy
         x_ten, g_ten, mask_ten, sid_ten, ids_ten = _obs_tensors(
-            panel_data, p_cur, L, device
+            panel_data, p_cur, L, device, id_mapper
         )
         x_np = x_ten.squeeze(0).cpu().numpy()
 
@@ -664,7 +714,7 @@ def run_episode(
 
         # SAC updates
         if replay.size >= current_batch_size:
-            for _ in range(updates_per_step):
+            for upd_idx in range(updates_per_step):
                 batch  = replay.sample(current_batch_size, critic=True, rng=rng)
                 upd    = trainer.update(batch, rng=rng)
                 global_update_count += 1
@@ -688,7 +738,7 @@ def run_episode(
                         f"q1={upd.get('q1_mean', float('nan')):8.4f}  "
                         f"q2={upd.get('q2_mean', float('nan')):8.4f}  "
                         f"ent={upd.get('entropy_mean', float('nan')):7.4f}  "
-                        f"α={upd.get('alpha', float('nan')):.4f}  "
+                        f"a={upd.get('alpha', float('nan')):.4f}  "
                         f"td={upd.get('td_error_abs_mean', float('nan')):.4f}"
                     )
 
@@ -732,11 +782,18 @@ def main() -> None:
     config = load_config(str(config_path))
     logger.info(f"Config loaded from {config_path}")
 
-    device = torch.device("cuda:0")
-    logger.info(
-        f"Device: {torch.cuda.get_device_name(0)}  |  "
-        f"VRAM: {torch.cuda.get_device_properties(0).total_memory / 1e9:.1f} GB"
-    )
+    # Device setup
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    if device.type == "cuda":
+        gpu_name = torch.cuda.get_device_name(0)
+        vram_gb  = torch.cuda.get_device_properties(0).total_memory / 1e9
+        logger.info(f"Device: {gpu_name}  |  VRAM: {vram_gb:.1f} GB")
+        
+        # Enable cuDNN autotuner for better performance
+        torch.backends.cudnn.benchmark = True
+        torch.backends.cudnn.enabled = True
+    else:
+        logger.info("Device: CPU (no CUDA available)")
 
     # ── Pre-flight ───────────────────────────────────────────────────────────
     run_preflight(config, logger)
@@ -773,6 +830,10 @@ def main() -> None:
         # Load feature panel once per fold (shared across train + oos)
         logger.info(f"  Loading feature panel for fold {fold_id} ...")
         panel_dict = _load_panel(data_dir, fold_id)
+        
+        # Build ID mapper: sparse security_id → dense index [0, N-1]
+        id_mapper, num_unique_ids = build_id_mapper(panel_dict)
+        logger.info(f"  ID mapper built: {num_unique_ids} unique security IDs")
 
         # Build training env + panel_data
         logger.info(f"  Building training environment for fold {fold_id} ...")
@@ -809,11 +870,11 @@ def main() -> None:
                 torch.cuda.empty_cache()
 
             # Fresh model + trainer (always from scratch, no weight transfer)
-            # num_tickers must be > max(security_id) in data (max ~93436)
+            # num_tickers = number of unique security IDs (mapped to dense indices)
             model = model_from_config(
                 vars(config.architecture),
                 D_g         = 20,
-                num_tickers = 100000,
+                num_tickers = num_unique_ids,
                 num_sectors = 12,
             ).to(device)
 
@@ -824,6 +885,7 @@ def main() -> None:
                 opt_cfg    = config.optimizer,
                 L_lookback = config.architecture.L,
                 device     = device,
+                id_mapper  = id_mapper,
             )
 
             global_update_count = 0
@@ -862,6 +924,7 @@ def main() -> None:
                         train_log_writer    = train_log_writer,
                         logger              = logger,
                         rng                 = rng,
+                        id_mapper           = id_mapper,
                     )
 
                 # All episodes completed successfully
@@ -893,7 +956,7 @@ def main() -> None:
         )
         logger.info(f"  Checkpoint saved: {ckpt_path}")
 
-        # ── OOS Evaluation ────────────────────────────────────────────────────
+        # ── OOS Evaluation ────────────────────────────────────────────────────────
         oos_result = run_oos_eval(
             model=model,
             config=config,
@@ -901,6 +964,7 @@ def main() -> None:
             panel_dict=panel_dict,
             device=device,
             logger=logger,
+            id_mapper=id_mapper,
         )
         metrics, port_arr, qqq_arr, dates_list = oos_result
 

@@ -1,0 +1,17 @@
+{
+  "excess_cagr": 1.2750253549344834,
+  "sortino": 16.059913021934346,
+  "max_drawdown": -0.9999999430428874,
+  "sharpe": 0.9856175915958616,
+  "turnover_mean": NaN,
+  "cost_drag": 0.0006489133723723959,
+  "effective_n_positions": 15.73478936524734,
+  "skewness": 7.011819529551076,
+  "kurtosis": 47.40284764519017,
+  "cvar_5pct": -0.18667312681536066,
+  "hit_rate": 0.5961538461538461,
+  "beta_to_qqq": -3.2021784492648395,
+  "information_ratio": 0.9856175915958616,
+  "rank_ic": NaN,
+  "n_oos_weeks": 104.0
+}

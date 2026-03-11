@@ -128,10 +128,20 @@ class SACTrainer:
         opt_cfg,
         L_lookback: int           = 60,
         device:     torch.device  = None,
+        id_mapper:  Optional[Dict[int, int]] = None,
     ):
         if device is None:
             device = torch.device("cpu")
         self.device = device
+        self._id_mapper = id_mapper
+        
+        # Build vectorized ID mapping lookup array (cached)
+        self._id_lookup = None
+        if id_mapper is not None:
+            max_id = max(id_mapper.keys())
+            self._id_lookup = np.zeros(max_id + 1, dtype=np.int64)
+            for sparse_id, dense_idx in id_mapper.items():
+                self._id_lookup[sparse_id] = dense_idx
 
         # Online model
         self.model = model.to(device)
@@ -401,6 +411,13 @@ class SACTrainer:
         tid_batch  = self._ticker_ids[t_idx_arr]    # [B, K]
         sid_batch  = self._sector_ids[t_idx_arr]    # [B, K]
 
+        # Apply ID mapping if provided (fully vectorized using cached lookup)
+        if self._id_lookup is not None:
+            # Vectorized mapping: clip negative IDs to 0, then lookup
+            max_id = len(self._id_lookup) - 1
+            tid_batch_clipped = np.clip(tid_batch, 0, max_id)
+            tid_batch = self._id_lookup[tid_batch_clipped]
+
         x   = torch.from_numpy(x_batch).to(self.device)
         g   = torch.from_numpy(g_batch).to(self.device)
         m   = torch.from_numpy(mask_batch).to(self.device)
@@ -445,7 +462,6 @@ class SACTrainer:
         R_n, gamma_n, done_n, w_pre_buf,
     ) -> Dict:
         """Compute QR-Huber critic loss, backward, clip, step."""
-
         # ------------------------------------------------------------------
         # §8.1.1  Distributional Bellman target  (no gradient)
         # ------------------------------------------------------------------

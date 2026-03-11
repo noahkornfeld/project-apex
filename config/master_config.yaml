@@ -12,7 +12,7 @@
 
 sac:
   # §8.8  Temperature (Alpha)
-  init_alpha: 0.1                    # Initial temperature; log_alpha initialized accordingly
+  init_alpha: 0.2                    # Initial temperature; log_alpha initialized accordingly
   alpha_min: 0.0001                  # Lower bound on alpha; prevents entropy collapse
   alpha_max: 1.0                     # Upper bound on alpha; prevents excessive randomness
   alpha_lr: 0.0001                   # Adam LR for log_alpha
@@ -28,18 +28,18 @@ sac:
   n_step: 4                          # Multi-step return horizon (weeks); ≥ 1
 
   # §8.7  Update Schedule
-  updates_per_step: 20               # Gradient updates per env step; valid range [20, 35]
+  updates_per_step: 5                # Gradient updates per env step; reduced from 20 for RTX 3070
   policy_delay: 2                    # Actor/alpha updated every N critic updates; ≥ 1
-  batch_size: 64                     # Transitions sampled per update
+  batch_size: 32                     # Transitions sampled per update
   grad_accum_steps: 1                # No gradient accumulation
   mixed_precision: false             # Full float32; no fp16/bf16
   distributed_training: false        # Single-GPU training only
 
   # §8.10  Target Networks (Polyak Averaging)
-  tau: 0.005                         # Polyak rate; valid (0, 0.1]; reduce to 0.002 if Q drifts
+  tau: 0.01                          # Polyak rate; valid (0, 0.1]; increased for faster target updates
 
   # §8.11  Gradient Clipping
-  grad_clip_critic: 1.0              # Critic max grad norm; valid (0, 2]
+  grad_clip_critic: 0.5              # Critic max grad norm; valid (0, 2]; reduced for stability
   grad_clip_encoder: 1.0             # Encoder max grad norm; valid (0, 2]; excludes embeddings
   grad_clip_actor: 5.0               # Actor max grad norm; valid (0, ∞); looser by design
   # log_alpha: no clipping (scalar)
@@ -68,7 +68,7 @@ replay:
 optimizer:
   # Critic (Q1, Q2)
   critic_optimizer: "adam"
-  critic_lr: 0.0003
+  critic_lr: 0.0001
   critic_weight_decay: 0.0
 
   # Actor
@@ -102,15 +102,15 @@ architecture:
   tcn_dilation_base: 2               # d_l = dilation_base^l
   tcn_activation: "silu"             # SiLU (Sigmoid Linear Unit)
   tcn_normalization: "layernorm"     # Applied within residual blocks
-  tcn_skip_connections: true         # 1×1 conv projection if dims differ
-  tcn_causal: true                   # Left-only padding; no future leakage
+  tcn_dropout: 0.05                  # Dropout rate
+  tcn_use_residual: true             # Enable residual connections
 
   # §7.5  Cross-Asset Attention
   attn_num_heads: 4                  # Each head gets d_model / num_heads
   attn_d_model: 128                  # Total attention dimension
   attn_d_ff: 256                     # Feed-forward sublayer dimension
   attn_dropout: 0.05                 # Dropout on attention weights
-  attn_num_layers: 2                 # Stacked transformer-style blocks [UNRESOLVED: shown as "[2"]
+  attn_num_layers: 2                 # Stacked transformer-style blocks
   attn_padding_mask: true            # mask_t[i]=0 slots get -∞ before softmax
   attn_sector_adjacency_bias: true   # Additive bias for same-GICS-sector pairs
 
@@ -120,13 +120,13 @@ architecture:
   num_sectors: 12                    # Vocab size = 11 GICS sectors + 1 unknown slot (GICS_TO_IDX)
 
   # §7.6  Actor Head MLP
-  actor_hidden_dims: [128, 128]      # SiLU activations
+  actor_hidden_dims: [64, 64]        # SiLU activations (reduced from [128, 128] for RTX 3070)
   log_sigma_init: -1.5               # Initial log-std of action noise (σ ≈ 0.22); §4.4
   log_sigma_min: -5.0                # Clamp floor — prevents fully deterministic policy; §4.4
   log_sigma_max: 1.0                 # Clamp ceiling — caps maximum exploration noise; §4.4
 
   # §7.8  Critic Head MLP (twin Q1, Q2)
-  critic_hidden_dims: [256, 256]     # SiLU activations; 256 hidden dims
+  critic_hidden_dims: [128, 128]     # SiLU activations (reduced from [256, 256] for RTX 3070)
   n_quantiles: 32                    # Distributional (quantile regression) critic
 
 # =============================================================================

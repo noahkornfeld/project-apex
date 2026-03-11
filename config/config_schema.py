@@ -86,8 +86,8 @@ class SACConfig:
         assert self.alpha_min <= self.init_alpha <= self.alpha_max, \
             f"init_alpha must be in [alpha_min, alpha_max]"
         assert self.n_step >= 1, f"n_step must be >= 1, got {self.n_step}"
-        assert 20 <= self.updates_per_step <= 35, \
-            f"updates_per_step must be in [20, 35], got {self.updates_per_step}"
+        assert 5 <= self.updates_per_step <= 35, \
+            f"updates_per_step must be in [5, 35], got {self.updates_per_step}"
         assert self.policy_delay >= 1, f"policy_delay must be >= 1"
         assert 0 < self.tau <= 0.1, f"tau must be in (0, 0.1], got {self.tau}"
         assert 0 < self.grad_clip_critic <= 2, "grad_clip_critic must be in (0, 2]"
