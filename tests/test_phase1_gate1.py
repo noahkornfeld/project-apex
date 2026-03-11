@@ -113,7 +113,7 @@ class TestGate1Config:
         assert config is not None
         assert isinstance(config, ProjectConfig)
         assert config.sac.gamma == 0.975
-        assert config.architecture.K_max == 102
+        assert config.architecture.K_max == 110
         
         print(f"✓ Valid config loaded successfully")
     

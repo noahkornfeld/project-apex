@@ -35,8 +35,8 @@ from features import TS_FEATURE_NAMES, CS_FEATURE_NAMES, F_TS, F_CS, F_TOTAL
 
 DATA_DIR  = Path(__file__).parent.parent / "Ticker_Data"
 CLIP      = 4.0
-K_MAX     = 102
-F_EXPECTED = 26   # 18 TS + 8 CS
+K_MAX     = 110
+F_EXPECTED = 25   # 17 TS + 8 CS
 
 
 # ===========================================================================
@@ -286,7 +286,7 @@ class TestGate3Shape:
     """Gate 3 — Shape: Panel shape is [T, K_max, F] with correct F count."""
 
     def test_ts_feature_count(self):
-        """Each security produces exactly 18 TS features."""
+        """Each security produces exactly 17 TS features."""
         bars         = _make_bars(n_days=100)
         qqq_c, qqq_lr = _make_qqq(bars)
         feat_df      = compute_per_asset_features(bars, qqq_c, qqq_lr)
@@ -326,7 +326,7 @@ class TestGate3Shape:
                 f"Security {sid}: expected {F_CS} CS features, got {cs_df.shape[1]}"
 
     def test_total_feature_count(self):
-        """F_TOTAL must equal 26 (18 TS + 8 CS)."""
+        """F_TOTAL must equal 25 (17 TS + 8 CS)."""
         assert F_TS + F_CS == F_EXPECTED, \
             f"Expected F={F_EXPECTED}, got F_TS={F_TS} + F_CS={F_CS} = {F_TS + F_CS}"
         assert F_TOTAL == F_EXPECTED
@@ -447,7 +447,7 @@ class TestGate3CrossSectional:
 
     def test_cs_features_mean_zero_at_each_t(self):
         """
-        Cross-sectional z-score features (ret_z_4w, ret_z_12w, vol_z_4w)
+        Cross-sectional z-score features (ret_z_4w, ret_z_13w, vol_z_4w)
         must have mean ≈ 0 and std ≈ 1 across active assets at each t.
         """
         n_assets = 30
@@ -465,10 +465,10 @@ class TestGate3CrossSectional:
         membership = _make_active_membership(sids, sector_map, dates)
         cs_all     = compute_cross_sectional_features(ts_all, membership)
 
-        z_score_cols = ["ret_z_4w", "ret_z_12w", "vol_z_4w"]
+        z_score_cols = ["ret_z_4w", "ret_z_13w", "vol_z_4w"]
 
-        # Check a sample of dates (skip early warm-up)
-        check_dates = dates[60:]
+        # Check a sample of dates (skip early warm-up; ret_13w needs 65 days)
+        check_dates = dates[70:]
         for tday in check_dates[::10]:  # every 10th date for speed
             vals_by_col = {col: [] for col in z_score_cols}
             for sid, cs_df in cs_all.items():

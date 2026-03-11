@@ -260,6 +260,7 @@ def _build_sector_ids(
     """
     ndx = pd.read_parquet(ndx_path, columns=["date", "security_id", "sector_code"])
     ndx["date"] = pd.to_datetime(ndx["date"])
+    ndx["security_id"] = ndx["security_id"].astype(np.int64)
     ndx_sorted = (ndx[["date", "security_id", "sector_code"]]
                   .sort_values("date")
                   .reset_index(drop=True))

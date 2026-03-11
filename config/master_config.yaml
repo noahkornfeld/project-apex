@@ -194,7 +194,7 @@ features:
     - log_ret
     - ret_1w
     - ret_4w
-    - ret_12w
+    - ret_13w
     - vol_1w
     - vol_4w
     - vol_52w
@@ -210,7 +210,7 @@ features:
   cross_sectional_features:
     - ret_rank_4w
     - ret_z_4w
-    - ret_z_12w
+    - ret_z_13w
     - vol_z_4w
     - volume_z_cs_4w
     - ret_z_4w_sector

@@ -322,8 +322,8 @@ class TransactionCostConfig:
 class ConstraintConfig:
     """Portfolio Constraint Parameters — Bible §4.5"""
 
-    per_name_cap: float = 0.15
-    sector_cap: float = 0.35
+    per_name_cap: float = 0.20
+    sector_cap: float = 0.50
 
     def validate(self):
         assert 0 < self.per_name_cap < 1, "per_name_cap must be in (0, 1)"
@@ -345,7 +345,7 @@ class FeatureConfig:
     # §3.1.1  Per-Asset Time-Series Features  (F_ts = 17)
     per_asset_ts_features: List[str] = field(default_factory=lambda: [
         "open", "close", "volume", "log_ret",
-        "ret_1w", "ret_4w", "ret_12w",
+        "ret_1w", "ret_4w", "ret_13w",
         "vol_1w", "vol_4w", "vol_52w",
         "volume_z_4w", "beta_26w_mkt", "rel_strength_4w",
         "vol_ratio_1w_4w", "RSI_14",
@@ -354,7 +354,7 @@ class FeatureConfig:
 
     # §3.2.1  Cross-Sectional Features  (F_cs = 8)
     cross_sectional_features: List[str] = field(default_factory=lambda: [
-        "ret_rank_4w", "ret_z_4w", "ret_z_12w", "vol_z_4w",
+        "ret_rank_4w", "ret_z_4w", "ret_z_13w", "vol_z_4w",
         "volume_z_cs_4w", "ret_z_4w_sector", "vol_z_4w_sector",
         "momentum_sector_residual",
     ])

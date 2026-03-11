@@ -4,7 +4,7 @@ Phase 3: Feature Engineering Package
 Bible §3 — Feature Engineering
 
 Modules:
-    per_asset_features      §3.1  Per-asset time-series features (18 features)
+    per_asset_features      §3.1  Per-asset time-series features (17 features)
     cross_sectional_features §3.2  Cross-sectional z-scores and ranks (8 features)
     macro_broadcast_features §3.3  Macro/broadcast features → g_t
     portfolio_state_features §3.4  Portfolio-state features → g_t [STUB]
@@ -36,7 +36,7 @@ __all__ = [
 ]
 
 TS_FEATURE_NAMES = [
-    "open", "close", "volume", "adj_close", "log_ret",
+    "open", "close", "volume", "log_ret",
     "ret_1w", "ret_4w", "ret_13w",
     "vol_1w", "vol_4w", "vol_52w",
     "volume_z_4w", "beta_26w_mkt", "rel_strength_4w",
@@ -52,6 +52,6 @@ CS_FEATURE_NAMES = [
 
 ALL_ASSET_FEATURE_NAMES = TS_FEATURE_NAMES + CS_FEATURE_NAMES
 
-F_TS = len(TS_FEATURE_NAMES)   # 18
+F_TS = len(TS_FEATURE_NAMES)   # 17
 F_CS = len(CS_FEATURE_NAMES)   # 8
-F_TOTAL = F_TS + F_CS           # 26
+F_TOTAL = F_TS + F_CS           # 25

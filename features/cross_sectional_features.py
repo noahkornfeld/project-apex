@@ -9,7 +9,7 @@ currently-active assets at time t and their pre-computed time-series values.
 Feature list (§3.2.1):
     ret_rank_4w           — Percentile rank of 4-week return
     ret_z_4w              — Z-score of 4-week return across active universe
-    ret_z_12w             — Z-score of 12-week return across active universe
+    ret_z_13w             — Z-score of 13-week return across active universe
     vol_z_4w              — Z-score of 4-week realized vol across active universe
     volume_z_cs_4w        — Cross-sectional volume z-score
     ret_z_4w_sector       — Sector-relative z-score of 4w return (within sector)
@@ -26,7 +26,7 @@ EPS = 1e-8
 CS_FEATURE_NAMES = [
     "ret_rank_4w",
     "ret_z_4w",
-    "ret_z_12w",
+    "ret_z_13w",
     "vol_z_4w",
     "volume_z_cs_4w",
     "ret_z_4w_sector",
@@ -88,7 +88,7 @@ def compute_cross_sectional_features(
     Compute cross-sectional features for all dates and all active securities.
 
     Args:
-        ts_features     : {security_id: DataFrame(DatetimeIndex, 18 TS features)}.
+        ts_features     : {security_id: DataFrame(DatetimeIndex, 17 TS features)}.
                           Only 'ret_4w', 'ret_13w', 'vol_4w', 'volume_z_4w' are used.
         active_membership: DataFrame with columns [date, security_id, sector_code].
                            Contains one row per (date, active_security) using
