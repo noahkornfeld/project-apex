@@ -129,52 +129,65 @@ def build_market_data(
     bars["gap_vol_252"] = bars.groupby("security_id")["gap"].transform(
         lambda s: _rolling(s, GAP_VOL_WINDOW, "std"))
 
-    # Build lookup: (date_str, security_id) -> values
     bars["date_str"] = bars["date"].dt.strftime("%Y-%m-%d")
-    bars_idx = bars.set_index(["date_str", "security_id"])
 
     # ------------------------------------------------------------------
-    # 4. Map to slot arrays  [T, K_max]
+    # 4. Map to slot arrays  [T, K_max]  — vectorised numpy approach
     # ------------------------------------------------------------------
-    adj_close_arr   = np.zeros((T, K_max), dtype=np.float32)
-    adj_open_arr    = np.zeros((T, K_max), dtype=np.float32)
-    adv63_arr       = np.zeros((T, K_max), dtype=np.float32)
-    vol_252_arr     = np.zeros((T, K_max), dtype=np.float32)
-    gap_vol_252_arr = np.zeros((T, K_max), dtype=np.float32)
+    _cols    = ["adj_close", "adj_open", "adv63", "vol_252", "gap_vol_252"]
+    all_sids = np.unique(active_ids[active_ids >= 0])   # [N_sids]
+    n_sids   = len(all_sids)
 
-    # Vectorised fill using a pivot approach (faster than row-by-row)
-    _cols = ["adj_close", "adj_open", "adv63", "vol_252", "gap_vol_252"]
-    pivot = bars[["date_str", "security_id"] + _cols].copy()
-    pivot = pivot.dropna(subset=["date_str"])
+    # Map security_id → dense column index (0 .. n_sids-1)
+    sid_to_col: Dict[int, int] = {int(s): i for i, s in enumerate(all_sids)}
 
-    # Build date_str → row_idx map
-    # Build security_id → column_idx map
-    all_sids = np.unique(active_ids[active_ids >= 0])
-    sid_set  = set(all_sids.tolist())
+    # Filter bars to only the sids/dates we need
+    sid_set   = set(sid_to_col.keys())
+    date_set  = set(dates_str.tolist())
+    bars_filt = bars.loc[
+        bars["security_id"].isin(sid_set) & bars["date_str"].isin(date_set),
+        ["date_str", "security_id"] + _cols,
+    ].copy()
 
-    # For each unique (date_str, sid) lookup efficiently
-    bars_lookup: Dict[str, Dict[int, tuple]] = {}
-    for row in pivot.itertuples(index=False):
-        d = row.date_str
-        s = int(row.security_id)
-        if s in sid_set:
-            if d not in bars_lookup:
-                bars_lookup[d] = {}
-            bars_lookup[d][s] = (row.adj_close, row.adj_open,
-                                  row.adv63, row.vol_252, row.gap_vol_252)
+    # Integer row/column indices for scatter
+    t_vec = bars_filt["date_str"].map(date_to_t).values.astype(np.intp)   # [N]
+    c_vec = bars_filt["security_id"].map(sid_to_col).values.astype(np.intp)  # [N]
 
-    for t_idx in range(T):
-        d = dates_str[t_idx]
-        day_data = bars_lookup.get(d, {})
-        for k in range(K_max):
-            sid = int(active_ids[t_idx, k])
-            if sid >= 0 and sid in day_data:
-                vals = day_data[sid]
-                adj_close_arr  [t_idx, k] = vals[0] if vals[0] == vals[0] else 0.0
-                adj_open_arr   [t_idx, k] = vals[1] if vals[1] == vals[1] else 0.0
-                adv63_arr      [t_idx, k] = vals[2] if vals[2] == vals[2] else 0.0
-                vol_252_arr    [t_idx, k] = vals[3] if vals[3] == vals[3] else 0.20
-                gap_vol_252_arr[t_idx, k] = vals[4] if vals[4] == vals[4] else 0.0
+    # Keep only rows where both indices resolved (no NaN/missing)
+    ok = np.isfinite(t_vec.astype(float)) & np.isfinite(c_vec.astype(float))
+    t_vec = t_vec[ok];  c_vec = c_vec[ok]
+    bars_filt = bars_filt.iloc[ok]
+
+    # Build dense [T, n_sids] arrays via scatter; vol default = 0.20 (safe fallback)
+    _defaults = {"adj_close": 0.0, "adj_open": 0.0, "adv63": 0.0,
+                 "vol_252": 0.20, "gap_vol_252": 0.0}
+    dense: Dict[str, np.ndarray] = {}
+    for col, default in _defaults.items():
+        arr = np.full((T, n_sids), default, dtype=np.float32)
+        vals = bars_filt[col].values.astype(np.float32)
+        vals = np.where(np.isfinite(vals), vals, default)   # replace NaN
+        arr[t_vec, c_vec] = vals
+        dense[col] = arr
+
+    # Map active_ids [T, K_max] → dense column index [T, K_max]
+    flat     = active_ids.ravel()                                      # [T*K_max]
+    flat_col = (pd.Series(flat.astype(np.int64))
+                .map(sid_to_col)
+                .fillna(-1)
+                .values
+                .astype(np.intp)
+                .reshape(T, K_max))                                     # [T, K_max]
+
+    # Fancy-index dense → slot arrays in one numpy op per column
+    valid_k  = flat_col >= 0                                           # [T, K_max]
+    col_safe = np.where(valid_k, flat_col, 0)                          # clip -1→0
+    T_idx    = np.arange(T, dtype=np.intp)[:, None]                    # [T, 1]
+
+    adj_close_arr   = np.where(valid_k, dense["adj_close"]  [T_idx, col_safe], 0.0 ).astype(np.float32)
+    adj_open_arr    = np.where(valid_k, dense["adj_open"]   [T_idx, col_safe], 0.0 ).astype(np.float32)
+    adv63_arr       = np.where(valid_k, dense["adv63"]      [T_idx, col_safe], 0.0 ).astype(np.float32)
+    vol_252_arr     = np.where(valid_k, dense["vol_252"]    [T_idx, col_safe], 0.20).astype(np.float32)
+    gap_vol_252_arr = np.where(valid_k, dense["gap_vol_252"][T_idx, col_safe], 0.0 ).astype(np.float32)
 
     # ------------------------------------------------------------------
     # 5. QQQ close and VIX from macro_features.parquet
@@ -236,33 +249,55 @@ def _build_sector_ids(
 ) -> np.ndarray:
     """Build [T, K_max] int32 array of GICS sector embedding indices per slot per day.
 
+    Uses an as-of rule: for each (panel_date, security_id) pair, the sector
+    code is taken from the most recent NDX snapshot whose date ≤ panel_date.
+    This preserves correct historical sector assignments for companies that
+    changed sectors (e.g. moved from Consumer Discretionary to Technology).
+
     Raw GICS codes (e.g. 10, 45, 50) are mapped to contiguous indices via
     GICS_TO_IDX so they are valid nn.Embedding lookup indices.  Inactive slots
-    (security_id < 0) retain -1; the model clamps these to 0 and zeros via mask.
+    (security_id < 0) retain -1; unknown/missing codes map to GICS_UNKNOWN_IDX.
     """
     ndx = pd.read_parquet(ndx_path, columns=["date", "security_id", "sector_code"])
     ndx["date"] = pd.to_datetime(ndx["date"])
+    ndx_sorted = (ndx[["date", "security_id", "sector_code"]]
+                  .sort_values("date")
+                  .reset_index(drop=True))
 
-    # Build security_id -> sector_code from most recent snapshot
-    sid_to_sector: Dict[int, int] = {}
-    for snap_date in sorted(ndx["date"].unique()):
-        snap = ndx[ndx["date"] == snap_date]
-        for row in snap.itertuples(index=False):
-            try:
-                sc = int(row.sector_code)
-            except (ValueError, TypeError):
-                sc = -1
-            sid_to_sector[int(row.security_id)] = sc
+    # Build flat query: one row per active (t, k) slot
+    dates_dt    = pd.to_datetime(dates_str)                     # [T] DatetimeSeries
+    flat_dates  = np.repeat(dates_dt, K_max)                    # [T*K_max]
+    flat_sids   = active_ids.ravel().astype(np.int64)           # [T*K_max]
+    flat_pos    = np.arange(T * K_max, dtype=np.intp)           # original positions
 
-    sector_ids_arr = np.full((T, K_max), -1, dtype=np.int32)
-    for t_idx in range(T):
-        for k in range(K_max):
-            sid = int(active_ids[t_idx, k])
-            if sid >= 0:
-                raw_code = sid_to_sector.get(sid, -1)
-                sector_ids_arr[t_idx, k] = GICS_TO_IDX.get(raw_code, GICS_UNKNOWN_IDX)
+    active_mask = flat_sids >= 0
+    queries = pd.DataFrame({
+        "date":        flat_dates[active_mask],
+        "security_id": flat_sids[active_mask],
+        "_pos":        flat_pos[active_mask],
+    }).sort_values("date").reset_index(drop=True)
 
-    return sector_ids_arr
+    # merge_asof: for each (query_date, security_id), find the most recent
+    # ndx snapshot with snapshot_date ≤ query_date  (as-of / backward rule)
+    merged = pd.merge_asof(
+        queries,
+        ndx_sorted,
+        on="date",
+        by="security_id",
+        direction="backward",
+    )
+
+    # Vectorised GICS code → embedding index mapping
+    sc_num  = pd.to_numeric(merged["sector_code"], errors="coerce").fillna(-1).astype(int)
+    emb_idx = (sc_num.map(GICS_TO_IDX)
+                     .fillna(GICS_UNKNOWN_IDX)
+                     .astype(np.int32))
+
+    # Scatter results back into flat [T*K_max] array; inactive slots stay -1
+    flat_result = np.full(T * K_max, -1, dtype=np.int32)
+    flat_result[merged["_pos"].values.astype(np.intp)] = emb_idx.values
+
+    return flat_result.reshape(T, K_max)
 
 
 # ---------------------------------------------------------------------------
@@ -275,6 +310,7 @@ def make_synthetic_market_data(
     n_active: int = 8,
     seed: int = 42,
     weekly_every: int = 5,
+    F: int = 25,
 ) -> Dict[str, np.ndarray]:
     """Build a small synthetic market-data dict for unit tests.
 
@@ -336,7 +372,7 @@ def make_synthetic_market_data(
     dates_str = np.array(all_dates, dtype=object)
 
     # Minimal x_panel and g_panel (zeros)
-    x_panel = np.zeros((n_days, K_max, 25), dtype=np.float32)
+    x_panel = np.zeros((n_days, K_max, F), dtype=np.float32)
     g_panel  = np.zeros((n_days, 20), dtype=np.float32)
 
     return dict(

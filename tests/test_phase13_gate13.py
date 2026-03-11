@@ -72,7 +72,7 @@ from integration.e2e_runner import make_synthetic_model, make_synthetic_panel
 # Shared helpers
 # ===========================================================================
 
-def _make_clean_weights(K: int = 8, K_max: int = 16, per_name_cap: float = 0.15) -> np.ndarray:
+def _make_clean_weights(K: int = 8, K_max: int = 16, per_name_cap: float = 0.20) -> np.ndarray:
     """Uniform weights over first K assets summing to 1."""
     w = np.zeros(K_max, dtype=np.float32)
     w[:K] = 1.0 / K
@@ -121,8 +121,8 @@ class TestGateGuardrails:
 
     def _gr(self) -> InferenceGuardrails:
         return InferenceGuardrails(
-            per_name_cap      = 0.15,
-            sector_cap        = 0.35,
+            per_name_cap      = 0.20,
+            sector_cap        = 0.50,
             mask_leak_tol     = 1e-6,
             nav_max_step_frac = 0.25,
             stale_weeks       = 2,
@@ -172,8 +172,8 @@ class TestGateGuardrails:
     def test_feasibility_fails_per_name_cap(self):
         """INJECT: one asset weight > per_name_cap → feasibility FAIL."""
         w    = np.zeros(self.K_MAX, dtype=np.float32)
-        w[0] = 0.20    # over per_name_cap=0.15
-        w[1] = 0.80
+        w[0] = 0.25    # over per_name_cap=0.20
+        w[1] = 0.75
         mask = _make_mask(2, self.K_MAX)
         sid  = np.full(self.K_MAX, -1, dtype=np.int64)
         sid[:2] = 0
@@ -183,13 +183,13 @@ class TestGateGuardrails:
     def test_feasibility_fails_sector_cap(self):
         """INJECT: one sector weight > sector_cap → feasibility FAIL."""
         w    = np.zeros(self.K_MAX, dtype=np.float32)
-        # Put 0.4 > 0.35 in sector 0
-        w[:4] = 0.10   # all sector 0 assets
+        # Put 0.60 > 0.50 in sector 0
+        w[:4] = 0.15   # all sector 0 assets
         mask = _make_mask(4, self.K_MAX)
         sid  = np.zeros(self.K_MAX, dtype=np.int64)
         sid[:4] = 0   # all same sector
         result = self._gr().check_feasibility(w, mask, sid)
-        assert not result.passed, "Expected feasibility FAIL on sector cap breach (0.4 > 0.35)"
+        assert not result.passed, "Expected feasibility FAIL on sector cap breach (0.60 > 0.50)"
 
     # ── Mask integrity fault injection ──────────────────────────────────
 

@@ -9,11 +9,11 @@ Implements:
   §5.4  Transaction cost model  (4-term: commission, spread, impact, gap)
   §5.5  QQQ benchmark NAV tracking
   §5.6  Episode lifecycle  (reset / termination)
-  §5.7  Forced-liquidation mechanics  (NDX removal → mask=0)
+  §5.7  Forced-liquidation mechanics  (NDX removal + missingness → mask=0)
   §4.6  Counterfactual w_pre NAV tracking
 
-Reward is a *stub*: step() returns a dict of raw components.
-Full reward formula (§6) is wired in Phase 6.
+step() returns raw reward components (r_port_t, r_qqq_t, cost_t, violations_t).
+Full 5-term reward formula (§6) is implemented in environment/reward_fn.py.
 """
 
 from __future__ import annotations
@@ -21,6 +21,14 @@ from __future__ import annotations
 import math
 import numpy as np
 from typing import Dict, Optional, Tuple, Any
+
+from features.portfolio_state_features import (
+    compute_portfolio_state,
+    N_PORTFOLIO_STATE_FEATURES,
+)
+
+# Offset of portfolio-state slice inside g  (9 macro + 3 benchmark = 12)
+_PORT_STATE_OFFSET = 9 + 3
 
 EPS = 1e-8
 
@@ -61,6 +69,11 @@ class TradingEnvironment:
         Lookback window in trading days for observations returned by reset/step.
     cost_config : dict, optional
         Override default cost constants (keys mirror COMMISSION_BPS etc.).
+    missingness_config : dict or MissingnessConfig-like, optional
+        Override missingness thresholds.  Recognised keys:
+          missing_in_window_threshold  (default MISSING_L_THRESH = 2)
+          consecutive_missing_threshold (default STREAK_THRESH    = 3)
+          temporal_window_days          (default L_lookback)
     """
 
     # ------------------------------------------------------------------
@@ -70,6 +83,7 @@ class TradingEnvironment:
         projector=None,
         L_lookback: int = 60,
         cost_config: Optional[Dict] = None,
+        missingness_config=None,
     ):
         # Market data arrays (all indexed by daily panel row)
         self._adj_close    = md["adj_close"]     # [T, K]
@@ -107,13 +121,27 @@ class TradingEnvironment:
         if cost_config:
             self._cc.update(cost_config)
 
+        # §5.7 Missingness thresholds — read from config if supplied
+        _mc = {}
+        if missingness_config is not None:
+            _mc = vars(missingness_config) if hasattr(missingness_config, "__dict__") else dict(missingness_config)
+        self._miss_L_thresh      = int(_mc.get("missing_in_window_threshold",  MISSING_L_THRESH))
+        self._miss_streak_thresh = int(_mc.get("consecutive_missing_threshold", STREAK_THRESH))
+        self._miss_window        = int(_mc.get("temporal_window_days",          L_lookback))
+
         # Episode state (initialised in reset)
-        self._ep_step  = 0          # step within episode (0-based)
-        self._nav      = 1.0        # portfolio NAV
-        self._nav_pre  = 1.0        # counterfactual w_pre NAV  (§4.6)
-        self._nav_qqq  = 1.0        # QQQ benchmark NAV
-        self._w_exec   = np.zeros(self._K, dtype=np.float32)
-        self._w_pre_saved = np.zeros(self._K, dtype=np.float32)
+        self._ep_step      = 0          # step within episode (0-based)
+        self._nav          = 1.0        # portfolio NAV
+        self._peak_nav     = 1.0        # running peak NAV (for drawdown)
+        self._nav_pre      = 1.0        # counterfactual w_pre NAV  (§4.6)
+        self._nav_qqq      = 1.0        # QQQ benchmark NAV
+        self._w_exec       = np.zeros(self._K, dtype=np.float32)
+        self._w_exec_prev  = np.zeros(self._K, dtype=np.float32)  # for turnover
+        self._w_pre_saved  = np.zeros(self._K, dtype=np.float32)
+
+        # §5.7 Missingness counters (reset each episode)
+        self._missing_L      = np.zeros(self._K, dtype=np.int32)   # count in window
+        self._streak_missing = np.zeros(self._K, dtype=np.int32)   # consecutive streak
 
         # Rolling return history for reward computation (Phase 6)
         self._ret_port_hist: list = []
@@ -132,13 +160,17 @@ class TradingEnvironment:
         # First valid step: need at least L weeks of panel history
         self._ep_step = self._first_valid_step()
 
-        self._nav     = 1.0
-        self._nav_pre = 1.0
-        self._nav_qqq = 1.0
-        self._w_exec  = np.zeros(self._K, dtype=np.float32)
-        self._w_pre_saved = np.zeros(self._K, dtype=np.float32)
-        self._ret_port_hist = []
-        self._ret_qqq_hist  = []
+        self._nav          = 1.0
+        self._peak_nav     = 1.0
+        self._nav_pre      = 1.0
+        self._nav_qqq      = 1.0
+        self._w_exec       = np.zeros(self._K, dtype=np.float32)
+        self._w_exec_prev    = np.zeros(self._K, dtype=np.float32)
+        self._w_pre_saved    = np.zeros(self._K, dtype=np.float32)
+        self._missing_L      = np.zeros(self._K, dtype=np.int32)
+        self._streak_missing = np.zeros(self._K, dtype=np.int32)
+        self._ret_port_hist  = []
+        self._ret_qqq_hist   = []
 
         obs  = self._get_obs(self._ep_step)
         info = {
@@ -190,13 +222,23 @@ class TradingEnvironment:
         )
 
         # ----------------------------------------------------------
-        # Forced-liquidation mask update (§5.7)
-        # When mask transitions 1→0, asset must be liquidated.
-        # We detect this by comparing current and next mask.
+        # §5.7 Forced-liquidation mask update
+        # Rule 1 (NDX removal): mask_panel transition 1→0.
+        # Rule 2 (Missingness): missing_L[i] > threshold OR
+        #                        streak_missing[i] > threshold.
         # ----------------------------------------------------------
         mask_cur  = self._mask_panel[p_cur].copy()   # [K]
         mask_next = self._mask_panel[p_next].copy()  # [K] (mask at d_{t+1})
 
+        # Update rolling missingness counters using the current panel row
+        miss_force = self._update_missingness_counters(p_cur)  # [K] bool
+
+        # Apply missingness overrides to both current and next masks
+        mask_cur[miss_force]  = 0.0
+        mask_next[miss_force] = 0.0
+
+        # Forced-liquidation: any asset currently held that is now inactive
+        # (either from NDX removal at p_next or missingness at p_cur)
         forced_liq_slots = np.where(
             (self._w_exec > 0) & (mask_next < 0.5)
         )[0]
@@ -286,8 +328,10 @@ class TradingEnvironment:
         self._ret_qqq_hist.append(r_qqq_t)
 
         # Update state for next step
+        self._w_exec_prev  = self._w_exec.copy()   # save before overwriting
         self._w_exec       = w_exec.copy()
         self._w_pre_saved  = w_pre_np.copy()
+        self._peak_nav     = max(self._peak_nav, self._nav)
         self._ep_step      = t_next
 
         # ----------------------------------------------------------
@@ -425,6 +469,10 @@ class TradingEnvironment:
         Returns a window of x_panel features [L_days, K, F],
         the global vector g[D], the mask [K], sector_ids [K],
         and active_ids [K] at the current panel row.
+
+        The last 8 slots of g (portfolio-state features) are computed
+        live from current episode state and patched in here, replacing the
+        zeros written during panel precomputation (§3.4.1).
         """
         p_idx = self._weekly_idx[ep_step]
 
@@ -432,9 +480,51 @@ class TradingEnvironment:
         p_start = max(0, p_idx - self._L)
         x_win   = self._x_panel[p_start : p_idx + 1]   # [<=L_days, K, F]
 
+        # ------------------------------------------------------------------
+        # Build live g by patching portfolio-state slice (§3.4.1 fix)
+        # ------------------------------------------------------------------
+        g = self._g_panel[p_idx].copy()   # copy so we don't mutate the panel
+
+        # Estimated cost: simulate cost of current holdings as proxy for
+        # "expected cost next rebalance" (§3.4.1)
+        est_cost = 0.0
+        w_sq = float(np.dot(self._w_exec, self._w_exec))
+        if w_sq > 1e-8:
+            est_cost, _ = self._compute_cost(
+                delta_w     = self._w_exec,
+                nav         = self._nav,
+                adv63       = self._adv63[p_idx],
+                vol_252     = self._vol_252[p_idx],
+                gap_vol_252 = self._gap_vol_252[p_idx],
+                vix         = float(self._vix[p_idx]),
+                mask        = self._mask_panel[p_idx],
+            )
+
+        # 52-week daily QQQ log-returns window (up to 260 trading days back)
+        qqq_start = max(0, p_idx - 260)
+        qqq_prices = self._qqq_close[qqq_start : p_idx + 1]
+        if len(qqq_prices) >= 2:
+            qqq_daily_rets = np.diff(np.log(np.maximum(qqq_prices, 1e-8)))
+        else:
+            qqq_daily_rets = np.array([], dtype=np.float32)
+
+        port_state = compute_portfolio_state(
+            w_exec         = self._w_exec,
+            w_exec_prev    = self._w_exec_prev,
+            nav            = self._nav,
+            peak_nav       = self._peak_nav,
+            ret_port_hist  = self._ret_port_hist,
+            ret_qqq_hist   = self._ret_qqq_hist,
+            qqq_daily_rets = qqq_daily_rets,
+            mask           = self._mask_panel[p_idx],
+            estimated_cost = est_cost,
+        )
+
+        g[_PORT_STATE_OFFSET : _PORT_STATE_OFFSET + N_PORTFOLIO_STATE_FEATURES] = port_state
+
         return dict(
             x           = x_win,
-            g           = self._g_panel[p_idx],
+            g           = g,
             mask        = self._mask_panel[p_idx],
             sector_ids  = self._sector_ids[p_idx],
             active_ids  = self._active_ids[p_idx],
@@ -445,6 +535,53 @@ class TradingEnvironment:
     # ------------------------------------------------------------------
     # Helpers
     # ------------------------------------------------------------------
+
+    def _update_missingness_counters(self, p_cur: int) -> np.ndarray:
+        """Update missing_L and streak_missing counters for all assets.
+
+        §5.7: An asset is treated as missing on a daily row when its
+        adj_close is ≤ 0 or NaN.
+
+        Parameters
+        ----------
+        p_cur : int
+            Current panel row index (daily).
+
+        Returns
+        -------
+        force_inactive : np.ndarray [K] bool
+            True where missing_L > threshold OR streak > threshold.
+            These assets should be overridden to inactive in mask_cur/next.
+        """
+        win  = self._miss_window
+        p0   = max(0, p_cur - win + 1)
+
+        close_win = self._adj_close[p0 : p_cur + 1]            # [w, K]
+        missing   = (close_win <= EPS) | np.isnan(close_win)   # [w, K] bool
+
+        # --- missing_L[i]: count of missing days in the rolling window ---
+        self._missing_L = missing.sum(axis=0).astype(np.int32)  # [K]
+
+        # --- streak_missing[i]: consecutive missing days ending at p_cur ---
+        # Reverse the window so index 0 = most recent day.
+        # Find the first non-missing day from the end; the streak = that index.
+        miss_rev      = missing[::-1]          # [w, K] reversed
+        not_miss_rev  = ~miss_rev              # True = not missing
+        # argmax returns index of first True; if all False (all missing),
+        # argmax returns 0 — so we guard with an all-missing flag.
+        all_missing   = not_miss_rev.sum(axis=0) == 0   # [K] bool
+        first_ok      = np.argmax(not_miss_rev, axis=0)  # [K] int
+        self._streak_missing = np.where(
+            all_missing,
+            len(close_win),          # entire window is missing
+            first_ok,
+        ).astype(np.int32)
+
+        force_inactive = (
+            (self._missing_L      > self._miss_L_thresh) |
+            (self._streak_missing > self._miss_streak_thresh)
+        )
+        return force_inactive
 
     def _first_valid_step(self) -> int:
         """Find first weekly step with ≥ L trading days of panel history (§5.6.1)."""

@@ -135,7 +135,7 @@ class ReplayBuffer:
         """Running std of all R_n values currently in buffer (§8.3.2)."""
         if self._size < 2:
             return 1.0
-        return float(np.std(self._R_n[:self._size], ddof=0))
+        return float(np.std(self._R_n[:self._size], ddof=1))
 
     # ======================================================================
     # Insertion — batch (episode-end) API

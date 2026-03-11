@@ -561,7 +561,7 @@ class TestRunningStats:
         buf.add_episode(ep)
 
         stored   = buf.stored_rewards()
-        expected = float(np.std(stored, ddof=0))
+        expected = float(np.std(stored, ddof=1))
         actual   = buf.buffer_reward_std
 
         assert abs(actual - expected) < 1e-5, (
@@ -577,7 +577,7 @@ class TestRunningStats:
             buf.add_episode(ep)
 
         stored   = buf.stored_rewards()
-        expected = float(np.std(stored, ddof=0))
+        expected = float(np.std(stored, ddof=1))
         actual   = buf.buffer_reward_std
 
         assert abs(actual - expected) < 1e-5, (
@@ -597,7 +597,7 @@ class TestRunningStats:
         buf.add_episode(ep2)
 
         stored   = buf.stored_rewards()
-        expected = float(np.std(stored, ddof=0))
+        expected = float(np.std(stored, ddof=1))
         actual   = buf.buffer_reward_std
 
         assert abs(actual - expected) < 1e-5

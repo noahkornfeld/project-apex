@@ -174,7 +174,7 @@ class ArchitectureConfig:
 
     # §4.1  Observation Space Dimensions
     K_max: int = 110
-    L: int = 60                           # Lookback in weeks (§0.1 notation)
+    L: int = 60                           # Lookback in days (§0.1 notation)
     F: int = 25                           # 17 TS + 8 CS features
 
     # §7.4  TCN Encoder
@@ -670,7 +670,8 @@ class ProjectConfig:
         # --- Cross-parameter validation (Bible §9.1) ---
         assert self.sac.n_step == self.evaluation.embargo_weeks, \
             f"embargo_weeks ({self.evaluation.embargo_weeks}) must equal " \
-            f"n_step ({self.sac.n_step}) — Bible §9.1"
+            f"n_step ({self.sac.n_step}): embargo_weeks must equal n_step to prevent " \
+            f"n-step returns from crossing fold boundaries (§9.1)"
 
         # Feature count consistency: F = len(TS) + len(CS)
         expected_F = (len(self.features.per_asset_ts_features)

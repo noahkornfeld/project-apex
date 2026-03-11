@@ -28,8 +28,8 @@ from environment.constraint_projector import (
 # ---------------------------------------------------------------------------
 # Constants matching master_config.yaml §4.5
 # ---------------------------------------------------------------------------
-PER_NAME_CAP = 0.15
-SECTOR_CAP   = 0.35
+PER_NAME_CAP = 0.20
+SECTOR_CAP   = 0.50
 K_MAX        = 110
 N_SECTORS    = 11       # GICS has 11 sectors (coded 0..10)
 
@@ -393,11 +393,11 @@ class TestFallback:
 
     def test_infeasible_cap_gives_equal_weight(self):
         """
-        n_active=5, per_name_cap=0.15 -> max feasible sum = 0.75 < 1.
-        Projector must fall back to equal-weight (0.2 each) without crash.
+        n_active=4, per_name_cap=0.20 -> max feasible sum = 0.80 < 1.
+        Projector must fall back to equal-weight (0.25 each) without crash.
         """
         proj = _make_projector()
-        n_active = 5
+        n_active = 4
         w_pre = torch.randn(K_MAX)
         mask = torch.zeros(K_MAX); mask[:n_active] = 1.0
         sid = torch.full((K_MAX,), -1, dtype=torch.long)
@@ -415,7 +415,7 @@ class TestFallback:
 
     def test_single_active_asset_weight_is_one(self):
         """
-        1 active asset: n_active * per_name_cap = 0.15 < 1 -> fallback.
+        1 active asset: n_active * per_name_cap = 0.20 < 1 -> fallback.
         That single asset must receive weight 1.0.
         """
         proj = _make_projector()

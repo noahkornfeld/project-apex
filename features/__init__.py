@@ -17,7 +17,10 @@ from features.per_asset_features import compute_per_asset_features
 from features.cross_sectional_features import compute_cross_sectional_features
 from features.macro_broadcast_features import compute_macro_broadcast_features
 from features.benchmark_features import compute_benchmark_features
-from features.portfolio_state_features import compute_portfolio_state_stub
+from features.portfolio_state_features import (
+    compute_portfolio_state,
+    compute_portfolio_state_stub,
+)
 from features.normalizers import CausalPerAssetNormalizer, clip_features
 from features.feature_panel import FeaturePanelBuilder
 

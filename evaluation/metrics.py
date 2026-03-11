@@ -293,7 +293,7 @@ def compute_all_metrics(
         "cvar_5pct":        compute_cvar(excess_returns, 0.05),
         "hit_rate":         compute_hit_rate(excess_returns),
         "beta_to_qqq":      beta,
-        "information_ratio": compute_sharpe(excess_returns, weeks_per_year),  # same formula §9.3.3
+        "information_ratio": compute_sharpe(excess_returns, weeks_per_year),  # IR = Sharpe of active returns; same formula when benchmark is QQQ (§9.3.3)
         "rank_ic":          (
             compute_rank_ic(w_exec, asset_returns)
             if (w_exec is not None and asset_returns is not None) else float("nan")
