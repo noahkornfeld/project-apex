@@ -28,7 +28,7 @@ sac:
   n_step: 4                          # Multi-step return horizon (weeks); ≥ 1
 
   # §8.7  Update Schedule
-  updates_per_step: 5                # Gradient updates per env step; reduced from 20 for RTX 3070
+  updates_per_step: 20               # Gradient updates per env step
   policy_delay: 2                    # Actor/alpha updated every N critic updates; ≥ 1
   batch_size: 32                     # Transitions sampled per update
   grad_accum_steps: 1                # No gradient accumulation

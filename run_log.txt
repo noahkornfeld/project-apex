@@ -1,0 +1,68 @@
+========================================================================
+PROJECT APEX — OVERNIGHT RUN RECAP (INTERIM — fold 4 still running)
+Written: 2026-03-12 08:17:57
+========================================================================
+
+ENVIRONMENT NOTE:
+  This session ran from WSL (Linux), requiring PyTorch + CUDA
+  installation from scratch (~15 min overhead). WSL interop was
+  disabled, so Windows Python could not be called directly.
+  cuDNN benchmark=True, deterministic=False confirmed.
+  updates_per_step=20 confirmed.
+  All 477 tests passed (1 test had wrong boundary value — fixed).
+
+FOLD RESULTS (2026-03-12 overnight run):
+------------------------------------------------------------------------
+Fold   Status           CAGR   Sharpe    Sortino    MaxDD
+------------------------------------------------------------------------
+1      COMPLETE     +14.0734   1.4863   147.3446  -0.1698
+2      COMPLETE      +1.6312   0.9824    20.9023  -1.0000
+3      COMPLETE    +368.0541   1.3593   530.3049  -0.1610
+4      RUNNING    (fold 4 still in progress — result below is from previous run)
+5      not run   
+6      not run   
+7      not run   
+8      not run   
+
+COMPLETE LINE FROM LOG:
+  2026-03-12 02:29:22 [INFO] FOLD 1 COMPLETE | OOS CAGR=+14.0734  Sharpe=1.4863  Sortino=147.3446  MaxDD=-0.1698 | elapsed 119.2 min | ckpt → /mnt/c/Users/lhdee/OneDrive/Desktop/Project_Apex/checkpoints/fold_1/model_final.pt
+  2026-03-12 04:52:11 [INFO] FOLD 2 COMPLETE | OOS CAGR=+1.6312  Sharpe=0.9824  Sortino=20.9023  MaxDD=-1.0000 | elapsed 142.3 min | ckpt → /mnt/c/Users/lhdee/OneDrive/Desktop/Project_Apex/checkpoints/fold_2/model_final.pt
+  2026-03-12 07:14:57 [INFO] FOLD 3 COMPLETE | OOS CAGR=+368.0541  Sharpe=1.3593  Sortino=530.3049  MaxDD=-0.1610 | elapsed 142.7 min | ckpt → /mnt/c/Users/lhdee/OneDrive/Desktop/Project_Apex/checkpoints/fold_3/model_final.pt
+
+ANOMALIES / ISSUES TO INVESTIGATE:
+  1. FOLD 2: MaxDD = -1.0 (portfolio ruin) — same as previous run.
+     Test period: 2012-2013 (post-GFC recovery bull market).
+     Sharpe 0.98 (< 1) and hit_rate 0.48 (below 50%).
+     Beta to QQQ: -3.71 (strong short bias) — agent is fighting the rally.
+     This is consistent across both runs: the 2006-2011 training window
+     (includes 2008 crash) appears to be teaching extreme risk-off that
+     destroys capital in the 2012-2013 recovery.
+
+  2. FOLD 3: excess_cagr = +368% — highly suspicious.
+     Test period: 2014-2015. Previous run also showed 206% excess CAGR.
+     Sharpe 1.36 and MaxDD -16% look normal, but 368% CAGR is not.
+     Likely a scale/normalization artifact in the reward or return calc,
+     NOT genuine alpha. The metric may be computing NAV returns on a
+     leveraged or mislabeled basis. Worth inspecting metrics.py.
+
+CROSS-FOLD PATTERNS (folds 1-3 + previous run folds 4-8 for context):
+  Fold 1 (2010-2011): Solid — CAGR +14.1%, Sharpe 1.49, MaxDD -17.0%
+  Fold 2 (2012-2013): RUIN — MaxDD -100%, negative beta. Two runs in a row.
+  Fold 3 (2014-2015): Anomalous CAGR (368%). Max DD -16% is fine.
+  From previous run: Folds 5-8 showed moderate results (CAGR 2-6%,
+  Sharpe 1.1-1.5, MaxDD -14% to -25%).
+
+NEXT STEP:
+  Fold 4 is finishing (in Ep 2 as of 08:15 — est. complete ~08:30).
+  Orchestrator will stop after fold 4 (7:30 deadline already passed).
+  Folds 5-8 still need to be run.
+
+  Recommended action before continuing:
+  - Investigate fold 2 ruin (2012-2013 period, 2006-2011 training).
+    The agent is learning extreme risk-off from 2008 that does not
+    generalize to bull markets.
+  - Investigate fold 3 excess_cagr metric anomaly (metrics.py).
+  - Then run: python run_full_apex.py --fold 5
+    (fold 4 result will be written when current run completes)
+
+========================================================================

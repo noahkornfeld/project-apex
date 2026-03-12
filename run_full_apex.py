@@ -3,6 +3,10 @@
 run_full_apex.py
 Project Apex — 8-Fold Walk-Forward Training Run.
 
+Usage:
+    python run_full_apex.py                    # Default: checkpoints/, results/
+    python run_full_apex.py --run-name 20up    # Custom: checkpoints_20up/, results_20up/
+
 All hyperparameters are loaded from config/master_config.yaml.
 Logs are written to logs/apex_run.log and console simultaneously.
 No human interaction required after launch.
@@ -767,7 +771,7 @@ def run_episode(
 # Main
 # ─────────────────────────────────────────────────────────────────────────────
 
-def main() -> None:
+def main(run_name: str = "", fold_only: int = 0) -> None:
     global _entropy_low_streak
     t0_total = time.time()
 
@@ -816,7 +820,8 @@ def main() -> None:
     # ════════════════════════════════════════════════════════════════════════
     # 8-Fold loop
     # ════════════════════════════════════════════════════════════════════════
-    for fold_id in range(1, 9):
+    folds_to_run = [fold_only] if fold_only else list(range(1, 9))
+    for fold_id in folds_to_run:
         t0_fold = time.time()
         _entropy_low_streak = 0
 
@@ -850,8 +855,10 @@ def main() -> None:
         )
 
         # Output directories
-        ckpt_dir    = ROOT / "checkpoints" / f"fold_{fold_id}"
-        results_dir = ROOT / "results"     / f"fold_{fold_id}"
+        ckpt_base = f"checkpoints_{run_name}" if run_name else "checkpoints"
+        results_base = f"results_{run_name}" if run_name else "results"
+        ckpt_dir    = ROOT / ckpt_base / f"fold_{fold_id}"
+        results_dir = ROOT / results_base / f"fold_{fold_id}"
         ckpt_dir.mkdir(parents=True, exist_ok=True)
         results_dir.mkdir(parents=True, exist_ok=True)
 
@@ -1095,7 +1102,8 @@ def main() -> None:
     logger.info("\n" + summary_text)
     logger.info(f"Total elapsed: {elapsed_total / 3600:.2f} h")
 
-    cross_fold_dir = ROOT / "results" / "cross_fold"
+    results_base = f"results_{run_name}" if run_name else "results"
+    cross_fold_dir = ROOT / results_base / "cross_fold"
     cross_fold_dir.mkdir(parents=True, exist_ok=True)
     summary_path = cross_fold_dir / "run_summary.txt"
     summary_path.write_text(summary_text + "\n", encoding="utf-8")
@@ -1103,4 +1111,10 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser(description="Run Project Apex 8-fold training")
+    parser.add_argument("--run-name", type=str, default="",
+                        help="Custom suffix for output directories (e.g., '20up' -> checkpoints_20up/, results_20up/)")
+    parser.add_argument("--fold", type=int, default=0,
+                        help="Run a single fold only (1-8). Default 0 = run all 8 folds.")
+    args = parser.parse_args()
+    main(run_name=args.run_name, fold_only=args.fold)

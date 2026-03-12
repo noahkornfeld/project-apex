@@ -157,9 +157,9 @@ class TestGate1Config:
         """Test: updates_per_step out of range raises error"""
         from config.config_schema import SACConfig
         
-        # Too low
+        # Too low (schema minimum is 5)
         with pytest.raises((AssertionError, ValidationError)):
-            config = SACConfig(updates_per_step=10)
+            config = SACConfig(updates_per_step=2)
             config.validate()
         
         # Too high
