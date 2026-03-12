@@ -66,3 +66,35 @@ NEXT STEP:
     (fold 4 result will be written when current run completes)
 
 ========================================================================
+========================================================================
+PROJECT APEX — OVERNIGHT RUN RECAP
+Written: 2026-03-12 09:36:53
+========================================================================
+
+Fold   Status         CAGR   Sharpe    Sortino    MaxDD  Elapsed
+----------------------------------------------------------------
+1      OK         +14.0734   1.4863   147.3446  -0.1698     nanm
+2      OK          +1.6312   0.9824    20.9023  -1.0000   142.4m
+3      OK        +368.0541   1.3593   530.3049  -0.1610   142.8m
+4      OK         +32.6124   1.2558   219.6213  -0.0902   141.9m
+5      not run 
+6      not run 
+7      not run 
+8      not run 
+
+ERRORS / ISSUES:
+  - Folds 5-8: not started — deadline 07:30 reached.
+
+CROSS-FOLD PATTERNS:
+  Avg excess CAGR : +104.0928
+  Avg Sharpe      : 1.2709
+  Avg Sortino     : 229.54
+  Best MaxDD      : -0.0902
+  Worst MaxDD     : -1.0000
+  Avg cost_drag   : 0.000234
+  NOTE: One or more folds show extreme CAGR — may indicate
+        scale/normalization issues in the reward. Inspect closely.
+  WARNING: Fold(s) [2] reached near-total-loss (MaxDD <= -0.95)
+
+NEXT STEP: Start fold 5 (run: python run_full_apex.py --fold 5)
+
