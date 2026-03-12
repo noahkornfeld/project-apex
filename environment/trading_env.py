@@ -265,11 +265,19 @@ class TradingEnvironment:
         # Force-liquidate slots that become inactive
         if len(forced_liq_slots) > 0:
             forced_liq_weight = float(w_exec[forced_liq_slots].sum())
-            w_exec[forced_liq_slots] = 0.0
             n_active_next = int(mask_next.sum())
+            
             if n_active_next > 0:
-                # Redistribute weight uniformly to remaining active assets
+                # Normal case: redistribute to remaining active assets
+                w_exec[forced_liq_slots] = 0.0
                 w_exec += (forced_liq_weight / n_active_next) * mask_next
+            else:
+                # Edge case: no active assets next period
+                # Keep current weights (will be liquidated at market close)
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.warning(f"[ENV] No active assets in next period, keeping current weights")
+                # Don't zero out - let the portfolio ride until assets become active again
         else:
             forced_liq_weight = 0.0
 

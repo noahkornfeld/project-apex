@@ -17,7 +17,7 @@ sac:
   alpha_max: 1.0                     # Upper bound on alpha; prevents excessive randomness
   alpha_lr: 0.0001                   # Adam LR for log_alpha
   alpha_weight_decay: 0.0            # No weight decay on alpha
-  entropy_scale_factor: 0.7          # H_target = -ln(K_active) * scale_factor
+  entropy_scale_factor: 1.0          # H_target = -ln(K_active) * scale_factor
   alpha_clamp_min: -9.2103           # log(1e-4) — lower clamp on log_alpha
   alpha_clamp_max: 0.0               # log(1.0)  — upper clamp on log_alpha
 
@@ -68,7 +68,7 @@ replay:
 optimizer:
   # Critic (Q1, Q2)
   critic_optimizer: "adam"
-  critic_lr: 0.0001
+  critic_lr: 0.00005
   critic_weight_decay: 0.0
 
   # Actor

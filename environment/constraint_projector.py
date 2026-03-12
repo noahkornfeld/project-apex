@@ -215,7 +215,7 @@ class ConstraintProjector(nn.Module):
         p2 = torch.zeros_like(w)    # for C_per_name
         p3 = torch.zeros_like(w)    # for C_sector
 
-        for _ in range(self.max_iters):
+        for iter_idx in range(self.max_iters):
             w_prev = w.detach()     # reference for convergence check only
 
             # C1: simplex projection
@@ -235,6 +235,14 @@ class ConstraintProjector(nn.Module):
 
             # Safety: re-enforce mask (numerical guard)
             w = w * mask
+
+            # Safety check: if w became all zeros or has NaN, mark as infeasible and break
+            with torch.no_grad():
+                w_sum = w.sum(dim=-1, keepdim=True)
+                w_invalid = (w_sum < 1e-8) | torch.isnan(w_sum) | torch.isinf(w_sum)
+                if w_invalid.any():
+                    infeasible = infeasible | w_invalid
+                    break
 
             # Convergence check (outside computation graph)
             with torch.no_grad():

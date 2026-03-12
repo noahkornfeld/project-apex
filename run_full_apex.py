@@ -3,9 +3,6 @@
 run_full_apex.py
 Project Apex — 8-Fold Walk-Forward Training Run.
 
-Usage:
-    python run_full_apex.py
-
 All hyperparameters are loaded from config/master_config.yaml.
 Logs are written to logs/apex_run.log and console simultaneously.
 No human interaction required after launch.
@@ -13,6 +10,7 @@ No human interaction required after launch.
 
 from __future__ import annotations
 
+import argparse
 import copy
 import csv
 import json
@@ -123,7 +121,14 @@ def check_alarms(
 
         # Alarm 3a: weight sum deviates from 1.0
         w_sum = float(np.sum(w_exec))
-        if abs(w_sum - 1.0) > 1e-5:
+        n_active = int(np.sum(mask > 0.5))
+        
+        # Special case: if no active assets, allow all-zero weights (go to cash)
+        if n_active == 0 and abs(w_sum) < 1e-8:
+            logger.warning(
+                f"ALARM [WARN]: No active assets, portfolio in cash (w_sum=0)"
+            )
+        elif abs(w_sum - 1.0) > 1e-5:
             logger.error(
                 f"ALARM [FATAL]: ||w_exec||_1 = {w_sum:.8f}, "
                 f"deviates from 1.0 by {abs(w_sum - 1.0):.2e}"
