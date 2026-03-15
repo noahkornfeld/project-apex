@@ -103,7 +103,33 @@ def build_market_data(
     # multiply here — close/open are the adjusted prices we want.
     bars["adj_close"] = bars["close"]
     bars["adj_open"]  = bars["open"]
-    bars["dv"]        = bars["close"] * bars["volume"]   # dollar volume (adjusted)
+
+    # ------------------------------------------------------------------
+    # Price sanity: forward-fill corrupted near-zero prices.
+    # A bad split-adjustment or data-provider error produces a single day
+    # where adj_close collapses to near-zero then snaps back to the normal
+    # price range.  Detect this as: price < 1% of the trailing 21-day median.
+    # A real crash (price stays down) is NOT affected — the rolling median
+    # falls with the price over many days.
+    # ------------------------------------------------------------------
+    def _fix_prices(s: pd.Series) -> pd.Series:
+        med = s.rolling(21, min_periods=3).median()
+        corrupted = (med > 0) & (s < med * 0.01)
+        if corrupted.any():
+            import logging as _log
+            _log.getLogger(__name__).warning(
+                f"[market_data] security_id={s.name}: replacing {corrupted.sum()} "
+                f"corrupted price(s) with forward-fill"
+            )
+            s = s.copy()
+            s[corrupted] = np.nan
+            s = s.ffill().bfill()
+        return s
+
+    bars["adj_close"] = bars.groupby("security_id")["adj_close"].transform(_fix_prices)
+    bars["adj_open"]  = bars.groupby("security_id")["adj_open"].transform(_fix_prices)
+
+    bars["dv"]        = bars["adj_close"] * bars["volume"]   # dollar volume (adjusted)
 
     # Daily log-return per security (for vol)
     bars["log_ret"] = bars.groupby("security_id")["adj_close"].transform(
