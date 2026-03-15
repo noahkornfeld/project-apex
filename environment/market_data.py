@@ -221,6 +221,23 @@ def build_market_data(
         if d in weekly_dates and start_pd <= dates_pd[i] <= end_pd
     ], dtype=np.int64)
 
+    # Drop any weekly rebalance dates where every slot has adj_close = 0.
+    # These arise from market closures (e.g. Hurricane Sandy 2012-10-29) or
+    # pre-membership warm-up rows where no NDX stock has data yet.  If such a
+    # date is used as p_next in step(), close_next = 0 → ret_asset ≈ -1.0 for
+    # all active slots → instant portfolio ruin (observed: Fold 2 MaxDD = -100%).
+    if len(weekly_idx) > 0:
+        has_price = (adj_close_arr[weekly_idx] > 1e-8).any(axis=1)
+        n_dropped = int((~has_price).sum())
+        if n_dropped > 0:
+            import logging as _log
+            bad_dates = ", ".join(dates_str[weekly_idx[~has_price]])
+            _log.getLogger(__name__).warning(
+                f"[market_data] Skipping {n_dropped} weekly rebalance date(s) "
+                f"with no valid adj_close (market holiday / data gap): {bad_dates}"
+            )
+            weekly_idx = weekly_idx[has_price]
+
     return dict(
         adj_close   = adj_close_arr,
         adj_open    = adj_open_arr,
