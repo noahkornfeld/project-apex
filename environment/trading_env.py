@@ -309,6 +309,7 @@ class TradingEnvironment:
             close_next / (close_cur + EPS) - 1.0,
             0.0,
         ).astype(np.float32)
+        ret_asset = np.clip(ret_asset, -0.99, 1.0)   # §5.3 guard: cap weekly asset returns at physically plausible range
 
         r_port_t = float(np.dot(self._w_exec, ret_asset))   # uses PREV w_exec
 

@@ -116,18 +116,22 @@ def compute_turnover_mean(turnover: np.ndarray) -> float:
 
 def compute_cost_drag(cost_bps: np.ndarray, gross_returns: np.ndarray) -> float:
     """
-    Cost drag = total transaction costs / |gross portfolio return| over OOS.
+    Cost drag = total transaction costs / |compounded gross portfolio return| over OOS.
     cost_bps in basis points; gross_returns as fractions.
+
+    Uses compounded return (not sum of absolutes) so that a single extreme-return
+    week cannot artificially inflate the denominator and deflate cost_drag.
     """
-    cost_bps     = np.asarray(cost_bps,     dtype=float)
+    cost_bps      = np.asarray(cost_bps,      dtype=float)
     gross_returns = np.asarray(gross_returns, dtype=float)
     if len(cost_bps) == 0:
         return float("nan")
-    total_cost_bps   = float(np.nansum(cost_bps))
-    total_gross_pnl  = float(np.nansum(np.abs(gross_returns))) * 10_000   # in bps
-    if total_gross_pnl == 0.0:
+    total_cost_bps = float(np.nansum(cost_bps))
+    compounded     = float(np.prod(1.0 + np.clip(gross_returns, -0.9999, None))) - 1.0
+    gross_pnl_bps  = abs(compounded) * 10_000
+    if gross_pnl_bps == 0.0:
         return float("nan")
-    return total_cost_bps / total_gross_pnl
+    return total_cost_bps / gross_pnl_bps
 
 
 def compute_effective_n_positions(w_exec: np.ndarray) -> float:
@@ -190,14 +194,27 @@ def compute_hit_rate(excess_returns: np.ndarray) -> float:
 def compute_beta_to_qqq(
     portfolio_returns: np.ndarray,
     qqq_returns:       np.ndarray,
+    winsor_pct:        float = 0.02,
 ) -> float:
-    """Regression coefficient of portfolio return on QQQ return."""
+    """
+    Regression coefficient of portfolio return on QQQ return.
+
+    Winsorises both series at the winsor_pct / (1-winsor_pct) percentiles
+    before regression so that a handful of extreme weeks (e.g. from data
+    quality spikes) cannot distort the beta estimate.
+    """
     p = np.asarray(portfolio_returns, dtype=float)
     q = np.asarray(qqq_returns,       dtype=float)
     mask = ~(np.isnan(p) | np.isnan(q))
     if mask.sum() < 2:
         return float("nan")
-    slope, _, _, _, _ = scipy_stats.linregress(q[mask], p[mask])
+    p_clean = p[mask]
+    q_clean = q[mask]
+    lo_p, hi_p = np.percentile(p_clean, [winsor_pct * 100, (1 - winsor_pct) * 100])
+    lo_q, hi_q = np.percentile(q_clean, [winsor_pct * 100, (1 - winsor_pct) * 100])
+    p_w = np.clip(p_clean, lo_p, hi_p)
+    q_w = np.clip(q_clean, lo_q, hi_q)
+    slope, _, _, _, _ = scipy_stats.linregress(q_w, p_w)
     return float(slope)
 
 
