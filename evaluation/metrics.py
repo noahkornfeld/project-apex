@@ -284,13 +284,13 @@ def compute_all_metrics(
     # ---- Primary (§9.3.1) ----
     primary = {
         "excess_cagr":  compute_excess_cagr(excess_returns, weeks_per_year),
-        "sortino":      compute_sortino(excess_returns, weeks_per_year),
+        "sortino":      compute_sortino(portfolio_returns, weeks_per_year),
         "max_drawdown": compute_max_drawdown(nav),
     }
 
     # ---- Secondary (§9.3.2) ----
     secondary = {
-        "sharpe":          compute_sharpe(excess_returns, weeks_per_year),
+        "sharpe":          compute_sharpe(portfolio_returns, weeks_per_year),
         "turnover_mean":   compute_turnover_mean(turnover) if turnover is not None else float("nan"),
         "cost_drag":       (
             compute_cost_drag(cost_bps, portfolio_returns)
