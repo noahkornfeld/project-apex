@@ -775,3 +775,48 @@ WHAT TO DO NEXT (RECOMMENDATIONS):
      be investigated and potentially fixed in ndx_membership.parquet to eliminate the
      "No active assets" training disruptions for Folds 3-5.
 ================================================================================
+
+================================================================================
+RUN COMPLETED: 2026-03-17 05:18 UTC
+Started: 2026-03-16 10:52 | Total elapsed: 18.44 hours
+Entry point: python run_full_apex.py (all 8 folds)
+================================================================================
+
+FOLD-BY-FOLD RESULTS:
+  Fold 1 | 2010-2011 OOS | CAGR=+12.42% | Sharpe=0.52 | Sortino=1.43 | MaxDD=-24.1% | 118 min
+  Fold 2 | 2012-2013 OOS | CAGR= +2.60% | Sharpe=0.40 | Sortino=0.80 | MaxDD=-12.3% | 141 min
+  Fold 3 | 2014-2015 OOS | CAGR=+14.24% | Sharpe=0.67 | Sortino=1.18 | MaxDD=-17.5% | 141 min
+  Fold 4 | 2016-2017 OOS | CAGR= -8.92% | Sharpe=-0.20| Sortino=-0.21| MaxDD=-23.5% | 141 min
+  Fold 5 | 2018-2019 OOS | CAGR= -4.90% | Sharpe=-0.10| Sortino=-0.19| MaxDD=-27.5% | 141 min
+  Fold 6 | 2020-2021 OOS | CAGR= +5.87% | Sharpe=0.41 | Sortino=1.18 | MaxDD=-27.5% | 141 min
+  Fold 7 | 2022-2023 OOS | CAGR=+22.36% | Sharpe=0.84 | Sortino=2.62 | MaxDD=-23.9% | 141 min
+  Fold 8 | 2024-pres OOS | CAGR= -4.55% | Sharpe=-0.23| Sortino=-0.25| MaxDD=-22.1% | 141 min
+
+CROSS-FOLD AVERAGES:
+  Avg CAGR:    +4.89%
+  Avg Sharpe:   0.29
+  Avg Sortino:  0.82
+  Avg MaxDD:  -22.3%
+
+INCIDENTS DURING RUN:
+  - Fold 2 Episode 3 (update ~14,250): Q-value divergence — q1/q2 escalated to
+    1,000-1,400+ with TD error spiking to 510. Per user instruction, let it run.
+    Fold 2 completed but with weak OOS metrics (CAGR +2.6%, Sortino 0.80).
+    Early entropy collapse warnings (updates 100-500) appeared in every fold
+    but self-corrected as in prior runs — this is normal.
+
+COMPARISON TO PRIOR RUNS:
+  Previous runs (2026-03-12 to 2026-03-14) showed implausibly high metrics
+  (CAGR 100-400%, Sortino 100-600+) that likely reflect a metric computation
+  bug since fixed. This run's metrics appear more realistic but are weak overall.
+  4 of 8 folds produced negative Sharpe.
+
+RECOMMENDATION:
+  The Q-divergence in Fold 2 Ep 3 is a recurring concern on the 2006-2011
+  training window (2008 crash data). Despite being flagged as "FIXED" in CLAUDE.md,
+  it reoccurred here under the longer 313-step window. Worth investigating whether
+  the grad_clip_critic=0.5 is sufficient or if an additional hard clip on replay
+  sampling is needed. Sharpe < 1 across all folds and negative CAGR on folds 4,
+  5, 8 suggest the agent is not outperforming a passive strategy in those periods.
+  Recommend reviewing OOS equity curves before running another full 8-fold run.
+================================================================================
