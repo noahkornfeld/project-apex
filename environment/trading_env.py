@@ -26,8 +26,6 @@ from features.portfolio_state_features import (
     compute_portfolio_state,
     N_PORTFOLIO_STATE_FEATURES,
 )
-from environment.volatility_scaler import VolatilityScaler
-
 # Offset of portfolio-state slice inside g  (9 macro + 3 benchmark = 12)
 _PORT_STATE_OFFSET = 9 + 3
 
@@ -148,10 +146,6 @@ class TradingEnvironment:
         self._ret_port_hist: list = []
         self._ret_qqq_hist:  list = []
 
-        # §5.8 Volatility targeting — scales position sizes to maintain
-        # consistent realised-vol exposure across market regimes.
-        self._vol_scaler = VolatilityScaler(target_vol=0.15, lookback_weeks=20)
-
     # ------------------------------------------------------------------
     # Public interface
     # ------------------------------------------------------------------
@@ -176,7 +170,6 @@ class TradingEnvironment:
         self._streak_missing = np.zeros(self._K, dtype=np.int32)
         self._ret_port_hist  = []
         self._ret_qqq_hist   = []
-        self._vol_scaler.reset()
 
         obs  = self._get_obs(self._ep_step)
         info = {
@@ -288,13 +281,6 @@ class TradingEnvironment:
             forced_liq_weight = 0.0
 
         # ----------------------------------------------------------
-        # §5.8 Volatility scaling — applied after projection & forced-liq
-        # so that constraint satisfaction is preserved on the unscaled
-        # weights, and cash (1 - sum(w_exec)) is held for the remainder.
-        # ----------------------------------------------------------
-        w_exec = self._vol_scaler.scale_weights(w_exec)
-
-        # ----------------------------------------------------------
         # Transaction costs  (§5.4)  – executed at open of d_{t+1}
         # ----------------------------------------------------------
         adj_open_next = self._adj_open[p_next]         # [K] execution price
@@ -325,7 +311,6 @@ class TradingEnvironment:
         ret_asset = np.clip(ret_asset, -0.99, 1.0)   # §5.3 guard: cap weekly asset returns at physically plausible range
 
         r_port_t = float(np.dot(self._w_exec, ret_asset))   # uses PREV w_exec
-        self._vol_scaler.update(r_port_t)   # feed realized return into rolling vol estimate
 
         # Counterfactual w_pre return (§4.6)
         r_pre_t  = float(np.dot(self._w_pre_saved, ret_asset))
