@@ -546,14 +546,21 @@ def run_oos_eval(
     excess_arr = port_arr - qqq_arr
     nav        = np.cumprod(1.0 + port_arr)
 
+    # Compute per-week one-way turnover from consecutive executed-weight changes.
+    # At t=0 the portfolio starts from all-zeros, so delta_w[0] = w_exec[0].
+    w_exec_arr   = np.stack(w_exec_hist).astype(np.float64)          # [T, K]
+    w_exec_prev  = np.vstack([np.zeros((1, w_exec_arr.shape[1])),
+                               w_exec_arr[:-1]])                       # [T, K]
+    turnover_arr = 0.5 * np.abs(w_exec_arr - w_exec_prev).sum(axis=1) # [T]
+
     metrics = compute_all_metrics(
         nav               = nav,
         excess_returns    = excess_arr,
         qqq_returns       = qqq_arr,
         portfolio_returns = port_arr,
-        turnover          = None,
+        turnover          = turnover_arr,
         cost_bps          = np.array(cost_bps_list, dtype=np.float64),
-        w_exec            = np.stack(w_exec_hist).astype(np.float64),
+        w_exec            = w_exec_arr,
         asset_returns     = None,
     )
     return metrics, port_arr, qqq_arr, dates_list
