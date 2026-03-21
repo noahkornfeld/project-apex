@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>APEX — Logo Concepts</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  background: #060810;
+  color: #e0e6f0;
+  min-height: 100vh;
+  padding: 48px 32px;
+}
+h1 {
+  text-align: center;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: #3a4a6a;
+  margin-bottom: 8px;
+}
+.subtitle {
+  text-align: center;
+  font-size: 12px;
+  color: #2a3a5a;
+  margin-bottom: 52px;
+  letter-spacing: 0.5px;
+}
+.grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 40px;
+  max-width: 1100px;
+  margin: 0 auto 64px;
+}
+.concept {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+.concept-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: #3a4a6a;
+}
+.concept-name {
+  font-size: 15px;
+  font-weight: 700;
+  color: #c0d0f0;
+  margin-top: -8px;
+}
+.concept-desc {
+  font-size: 11.5px;
+  color: #4a5a7a;
+  text-align: center;
+  line-height: 1.65;
+  max-width: 280px;
+}
+.logo-frame {
+  width: 310px;
+  height: 310px;
+  border-radius: 16px;
+  border: 1px solid #141e38;
+  background: #0a0e1a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  cursor: default;
+}
+.logo-frame:hover {
+  border-color: #2a3a60;
+  box-shadow: 0 0 40px rgba(0,0,0,0.7);
+}
+.divider-label {
+  text-align: center;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: #3a4a6a;
+  margin-bottom: 28px;
+}
+.icons-row {
+  display: flex;
+  justify-content: center;
+  gap: 24px;
+  flex-wrap: wrap;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+.icon-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+.icon-frame {
+  width: 96px;
+  height: 96px;
+  border-radius: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(255,255,255,0.06);
+}
+.icon-label {
+  font-size: 9px;
+  color: #2a3a5a;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+}
+</style>
+</head>
+<body>
+
+<h1>Project APEX</h1>
+<div class="subtitle">Logo Concepts — A Form + Reinforcement Learning Loop · Gold Colorway</div>
+
+<div class="grid">
+
+  <!-- ═══════════════════════════════════════
+       V1: THE INTEGRATED A
+       Loop is the apex — continuous form
+  ═══════════════════════════════════════ -->
+  <div class="concept">
+    <div class="concept-label">Concept 01</div>
+    <div class="concept-name">The Integrated A</div>
+    <div class="logo-frame">
+      <svg width="240" height="240" viewBox="0 0 240 240" fill="none">
+        <defs>
+          <filter id="glow1" x="-30%" y="-30%" width="160%" height="160%">
+            <feGaussianBlur stdDeviation="4" result="blur"/>
+            <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+          </filter>
+        </defs>
+
+        <!-- Faint outer echo of the loop -->
+        <path d="M 100,52 C 100,6 140,6 140,52"
+              fill="none" stroke="#f59e0b" stroke-width="0.8" stroke-opacity="0.15"/>
+
+        <!-- Main mark: left leg + loop + right leg as one continuous path -->
+        <!-- Left leg: (62,162) → (108,52), Loop bezier over top, right leg: (132,52) → (178,162) -->
+        <path d="M 62,162 L 108,52 C 108,12 132,12 132,52 L 178,162"
+              fill="none" stroke="#f59e0b" stroke-width="5"
+              stroke-linecap="round" stroke-linejoin="round"/>
+
+        <!-- Crossbar -->
+        <line x1="82" y1="110" x2="158" y2="110"
+              stroke="#f59e0b" stroke-width="4" stroke-linecap="round"/>
+
+        <!-- Direction indicator at top of loop — small right-pointing chevron -->
+        <!-- Loop top midpoint: bezier M 108,52 C 108,12 132,12 132,52 at t=0.5 is (120,22) -->
+        <!-- Tangent at t=0.5 points right (symmetric bezier) -->
+        <polyline points="114,18 121,22 114,26"
+                  fill="none" stroke="#f59e0b" stroke-width="2.2"
+                  stroke-linecap="round" stroke-linejoin="round"/>
+
+        <!-- Small node dots at loop endpoints where legs meet -->
+        <circle cx="108" cy="52" r="3" fill="#f59e0b" fill-opacity="0.5"/>
+        <circle cx="132" cy="52" r="3" fill="#f59e0b" fill-opacity="0.5"/>
+
+        <!-- Wordmark -->
+        <text x="120" y="188" text-anchor="middle"
+              font-family="'Segoe UI',system-ui,sans-serif"
+              font-size="23" font-weight="700" letter-spacing="9"
+              fill="#ffffff">APEX</text>
+        <line x1="56" y1="197" x2="184" y2="197"
+              stroke="#f59e0b" stroke-width="0.5" stroke-opacity="0.35"/>
+        <text x="120" y="212" text-anchor="middle"
+              font-family="'Segoe UI',system-ui,sans-serif"
+              font-size="7" font-weight="600" letter-spacing="3.5"
+              fill="#f59e0b" fill-opacity="0.6">PORTFOLIO INTELLIGENCE</text>
+      </svg>
+    </div>
+    <div class="concept-desc">The A and the loop are one continuous stroke. The apex of the letter is replaced by the RL cycle — the loop literally is the peak. A small right-pointing chevron at the crest shows the direction of the feedback. Minimal and unified.</div>
+  </div>
+
+  <!-- ═══════════════════════════════════════
+       V2: THE LEARNING ARC
+       Open A with separate arc loop + detail
+  ═══════════════════════════════════════ -->
+  <div class="concept">
+    <div class="concept-label">Concept 02</div>
+    <div class="concept-name">The Learning Arc</div>
+    <div class="logo-frame">
+      <svg width="240" height="240" viewBox="0 0 240 240" fill="none">
+        <defs>
+          <marker id="arc-arrow" viewBox="0 0 10 8" refX="9" refY="4"
+                  markerWidth="5" markerHeight="4" orient="auto">
+            <polygon points="0 0,10 4,0 8" fill="#f59e0b"/>
+          </marker>
+          <filter id="glow2" x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur stdDeviation="5" result="blur"/>
+            <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+          </filter>
+        </defs>
+
+        <!-- Soft glow behind apex -->
+        <circle cx="120" cy="36" r="28" fill="#f59e0b" fill-opacity="0.04"/>
+
+        <!-- A legs — open bottom, meeting at apex -->
+        <line x1="55" y1="164" x2="120" y2="36"
+              stroke="#f59e0b" stroke-width="5" stroke-linecap="round"/>
+        <line x1="120" y1="36" x2="185" y2="164"
+              stroke="#f59e0b" stroke-width="5" stroke-linecap="round"/>
+
+        <!-- Crossbar with tick details -->
+        <line x1="82" y1="108" x2="158" y2="108"
+              stroke="#f59e0b" stroke-width="3.5" stroke-linecap="round"/>
+        <!-- Crossbar ticks -->
+        <line x1="100" y1="103" x2="100" y2="113" stroke="#f59e0b" stroke-width="1.2" stroke-opacity="0.5"/>
+        <line x1="120" y1="103" x2="120" y2="113" stroke="#f59e0b" stroke-width="1.2" stroke-opacity="0.5"/>
+        <line x1="140" y1="103" x2="140" y2="113" stroke="#f59e0b" stroke-width="1.2" stroke-opacity="0.5"/>
+
+        <!-- Outer loop echo (faint) -->
+        <path d="M 101,52 C 101,8 139,8 139,52"
+              fill="none" stroke="#f59e0b" stroke-width="0.7" stroke-opacity="0.15"
+              stroke-dasharray="3 4"/>
+
+        <!-- Main RL loop arc: from lower-left of apex, over top, to lower-right -->
+        <!-- Endpoints sit just outside the A legs -->
+        <!-- Arrowhead at the right endpoint pointing downward (cycle returning) -->
+        <path d="M 106,52 C 106,10 134,10 134,52"
+              fill="none" stroke="#f59e0b" stroke-width="2"
+              stroke-opacity="0.9"
+              marker-end="url(#arc-arrow)"/>
+
+        <!-- Right-pointing chevron at loop crest (120,~22) showing clockwise direction -->
+        <polyline points="114,18 122,22 114,26"
+                  fill="none" stroke="#f59e0b" stroke-width="1.8"
+                  stroke-linecap="round" stroke-linejoin="round" stroke-opacity="0.8"/>
+
+        <!-- Apex dot with glow -->
+        <circle cx="120" cy="36" r="9" fill="#f59e0b" fill-opacity="0.1"/>
+        <circle cx="120" cy="36" r="5" fill="#f59e0b" fill-opacity="0.25"/>
+        <circle cx="120" cy="36" r="3" fill="#f59e0b"/>
+
+        <!-- Wordmark -->
+        <text x="120" y="191" text-anchor="middle"
+              font-family="'Segoe UI',system-ui,sans-serif"
+              font-size="23" font-weight="700" letter-spacing="9"
+              fill="#ffffff">APEX</text>
+        <line x1="56" y1="200" x2="184" y2="200"
+              stroke="#f59e0b" stroke-width="0.5" stroke-opacity="0.35"/>
+        <text x="120" y="215" text-anchor="middle"
+              font-family="'Segoe UI',system-ui,sans-serif"
+              font-size="7" font-weight="600" letter-spacing="3.5"
+              fill="#f59e0b" fill-opacity="0.6">PORTFOLIO INTELLIGENCE</text>
+      </svg>
+    </div>
+    <div class="concept-desc">A traditional open-bottom A with a separate arc looping around the apex. The arc has a clear arrowhead showing the RL feedback direction and a chevron at the crest confirming clockwise rotation. Crossbar tick marks add data precision. The apex dot anchors the peak.</div>
+  </div>
+
+  <!-- ═══════════════════════════════════════
+       V3: THE BOLD MARK
+       Heavy A, prominent loop, full detail
+  ═══════════════════════════════════════ -->
+  <div class="concept">
+    <div class="concept-label">Concept 03</div>
+    <div class="concept-name">The Bold Mark</div>
+    <div class="logo-frame">
+      <svg width="240" height="240" viewBox="0 0 240 240" fill="none">
+        <defs>
+          <marker id="bold-arrow" viewBox="0 0 10 8" refX="9" refY="4"
+                  markerWidth="6" markerHeight="5" orient="auto">
+            <polygon points="0 0,10 4,0 8" fill="#f59e0b"/>
+          </marker>
+          <radialGradient id="apex-glow" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stop-color="#f59e0b" stop-opacity="0.25"/>
+            <stop offset="100%" stop-color="#f59e0b" stop-opacity="0"/>
+          </radialGradient>
+        </defs>
+
+        <!-- Radial glow behind apex -->
+        <circle cx="120" cy="36" r="44" fill="url(#apex-glow)"/>
+
+        <!-- Outer orbital ring (very faint) -->
+        <circle cx="120" cy="36" r="38" stroke="#f59e0b"
+                stroke-width="0.5" stroke-opacity="0.08"
+                stroke-dasharray="2 6"/>
+
+        <!-- Outer loop echo -->
+        <path d="M 96,56 C 96,2 144,2 144,56"
+              fill="none" stroke="#f59e0b" stroke-width="1"
+              stroke-opacity="0.12" stroke-dasharray="3 5"/>
+
+        <!-- A legs — bold -->
+        <line x1="52" y1="164" x2="120" y2="34"
+              stroke="#f59e0b" stroke-width="6" stroke-linecap="round"/>
+        <line x1="120" y1="34" x2="188" y2="164"
+              stroke="#f59e0b" stroke-width="6" stroke-linecap="round"/>
+
+        <!-- Crossbar — bold with ticks -->
+        <line x1="79" y1="108" x2="161" y2="108"
+              stroke="#f59e0b" stroke-width="4.5" stroke-linecap="round"/>
+        <line x1="100" y1="102" x2="100" y2="114"
+              stroke="#f59e0b" stroke-width="1.5" stroke-opacity="0.55"/>
+        <line x1="120" y1="102" x2="120" y2="114"
+              stroke="#f59e0b" stroke-width="1.5" stroke-opacity="0.55"/>
+        <line x1="140" y1="102" x2="140" y2="114"
+              stroke="#f59e0b" stroke-width="1.5" stroke-opacity="0.55"/>
+
+        <!-- Main RL loop arc — prominent -->
+        <path d="M 104,53 C 104,8 136,8 136,53"
+              fill="none" stroke="#f59e0b" stroke-width="2.5"
+              stroke-opacity="0.9"
+              marker-end="url(#bold-arrow)"/>
+
+        <!-- Loop endpoint dots -->
+        <circle cx="104" cy="53" r="3.5" fill="#f59e0b" fill-opacity="0.6"/>
+        <circle cx="136" cy="53" r="3.5" fill="#f59e0b" fill-opacity="0.6"/>
+
+        <!-- Directional chevron at loop crest -->
+        <polyline points="113,16 122,21 113,26"
+                  fill="none" stroke="#f59e0b" stroke-width="2.5"
+                  stroke-linecap="round" stroke-linejoin="round"/>
+
+        <!-- Apex glow rings -->
+        <circle cx="120" cy="34" r="11" fill="#f59e0b" fill-opacity="0.1"/>
+        <circle cx="120" cy="34" r="6.5" fill="#f59e0b" fill-opacity="0.2"/>
+        <circle cx="120" cy="34" r="3.5" fill="#f59e0b"/>
+
+        <!-- Small data dots along outer loop echo baseline -->
+        <circle cx="80"  cy="164" r="2" fill="#f59e0b" fill-opacity="0.35"/>
+        <circle cx="100" cy="164" r="2" fill="#f59e0b" fill-opacity="0.35"/>
+        <circle cx="120" cy="164" r="2" fill="#f59e0b" fill-opacity="0.35"/>
+        <circle cx="140" cy="164" r="2" fill="#f59e0b" fill-opacity="0.35"/>
+        <circle cx="160" cy="164" r="2" fill="#f59e0b" fill-opacity="0.35"/>
+
+        <!-- Wordmark -->
+        <text x="120" y="190" text-anchor="middle"
+              font-family="'Segoe UI',system-ui,sans-serif"
+              font-size="23" font-weight="700" letter-spacing="9"
+              fill="#ffffff">APEX</text>
+        <line x1="56" y1="199" x2="184" y2="199"
+              stroke="#f59e0b" stroke-width="0.5" stroke-opacity="0.35"/>
+        <text x="120" y="214" text-anchor="middle"
+              font-family="'Segoe UI',system-ui,sans-serif"
+              font-size="7" font-weight="600" letter-spacing="3.5"
+              fill="#f59e0b" fill-opacity="0.6">PORTFOLIO INTELLIGENCE</text>
+      </svg>
+    </div>
+    <div class="concept-desc">Heavier strokes with a radial glow behind the apex, outer orbital ring, and endpoint nodes on the loop. The data dots along the bottom reference the 110-name universe. The layered glow rings behind the apex give it a sense of energy and focus at the peak.</div>
+  </div>
+
+</div>
+
+<!-- ═══════════ ICON VARIANTS ═══════════ -->
+<div class="divider-label">Icon Variants</div>
+<div class="icons-row">
+
+  <!-- V1 dark -->
+  <div class="icon-wrap">
+    <div class="icon-frame" style="background:#0a0e1a">
+      <svg width="60" height="60" viewBox="0 0 240 240" fill="none">
+        <path d="M 62,162 L 108,52 C 108,12 132,12 132,52 L 178,162"
+              fill="none" stroke="#f59e0b" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+        <line x1="82" y1="110" x2="158" y2="110" stroke="#f59e0b" stroke-width="5.5" stroke-linecap="round"/>
+        <polyline points="114,18 121,22 114,26" fill="none" stroke="#f59e0b" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </div>
+    <div class="icon-label">01 — Dark</div>
+  </div>
+
+  <!-- V1 gold fill -->
+  <div class="icon-wrap">
+    <div class="icon-frame" style="background:#f59e0b">
+      <svg width="60" height="60" viewBox="0 0 240 240" fill="none">
+        <path d="M 62,162 L 108,52 C 108,12 132,12 132,52 L 178,162"
+              fill="none" stroke="#fff" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+        <line x1="82" y1="110" x2="158" y2="110" stroke="#fff" stroke-width="5.5" stroke-linecap="round"/>
+        <polyline points="114,18 121,22 114,26" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </div>
+    <div class="icon-label">01 — Gold</div>
+  </div>
+
+  <!-- V1 light -->
+  <div class="icon-wrap">
+    <div class="icon-frame" style="background:#fefce8">
+      <svg width="60" height="60" viewBox="0 0 240 240" fill="none">
+        <path d="M 62,162 L 108,52 C 108,12 132,12 132,52 L 178,162"
+              fill="none" stroke="#b45309" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+        <line x1="82" y1="110" x2="158" y2="110" stroke="#b45309" stroke-width="5.5" stroke-linecap="round"/>
+        <polyline points="114,18 121,22 114,26" fill="none" stroke="#b45309" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </div>
+    <div class="icon-label">01 — Light</div>
+  </div>
+
+  <div style="width:1px;background:#141e38;margin:0 6px;align-self:stretch"></div>
+
+  <!-- V2 dark -->
+  <div class="icon-wrap">
+    <div class="icon-frame" style="background:#0a0e1a">
+      <svg width="60" height="60" viewBox="0 0 240 240" fill="none">
+        <defs>
+          <marker id="i2d" viewBox="0 0 10 8" refX="9" refY="4" markerWidth="6" markerHeight="5" orient="auto">
+            <polygon points="0 0,10 4,0 8" fill="#f59e0b"/>
+          </marker>
+        </defs>
+        <line x1="55" y1="164" x2="120" y2="36" stroke="#f59e0b" stroke-width="6.5" stroke-linecap="round"/>
+        <line x1="120" y1="36" x2="185" y2="164" stroke="#f59e0b" stroke-width="6.5" stroke-linecap="round"/>
+        <line x1="82" y1="108" x2="158" y2="108" stroke="#f59e0b" stroke-width="5" stroke-linecap="round"/>
+        <path d="M 106,52 C 106,10 134,10 134,52" fill="none" stroke="#f59e0b" stroke-width="2.5" marker-end="url(#i2d)"/>
+        <circle cx="120" cy="36" r="5" fill="#f59e0b"/>
+      </svg>
+    </div>
+    <div class="icon-label">02 — Dark</div>
+  </div>
+
+  <!-- V2 gold fill -->
+  <div class="icon-wrap">
+    <div class="icon-frame" style="background:#f59e0b">
+      <svg width="60" height="60" viewBox="0 0 240 240" fill="none">
+        <defs>
+          <marker id="i2g" viewBox="0 0 10 8" refX="9" refY="4" markerWidth="6" markerHeight="5" orient="auto">
+            <polygon points="0 0,10 4,0 8" fill="#fff"/>
+          </marker>
+        </defs>
+        <line x1="55" y1="164" x2="120" y2="36" stroke="#fff" stroke-width="6.5" stroke-linecap="round"/>
+        <line x1="120" y1="36" x2="185" y2="164" stroke="#fff" stroke-width="6.5" stroke-linecap="round"/>
+        <line x1="82" y1="108" x2="158" y2="108" stroke="#fff" stroke-width="5" stroke-linecap="round"/>
+        <path d="M 106,52 C 106,10 134,10 134,52" fill="none" stroke="#fff" stroke-width="2.5" stroke-opacity="0.9" marker-end="url(#i2g)"/>
+        <circle cx="120" cy="36" r="5" fill="#fff"/>
+      </svg>
+    </div>
+    <div class="icon-label">02 — Gold</div>
+  </div>
+
+  <!-- V2 light -->
+  <div class="icon-wrap">
+    <div class="icon-frame" style="background:#fefce8">
+      <svg width="60" height="60" viewBox="0 0 240 240" fill="none">
+        <defs>
+          <marker id="i2l" viewBox="0 0 10 8" refX="9" refY="4" markerWidth="6" markerHeight="5" orient="auto">
+            <polygon points="0 0,10 4,0 8" fill="#b45309"/>
+          </marker>
+        </defs>
+        <line x1="55" y1="164" x2="120" y2="36" stroke="#b45309" stroke-width="6.5" stroke-linecap="round"/>
+        <line x1="120" y1="36" x2="185" y2="164" stroke="#b45309" stroke-width="6.5" stroke-linecap="round"/>
+        <line x1="82" y1="108" x2="158" y2="108" stroke="#b45309" stroke-width="5" stroke-linecap="round"/>
+        <path d="M 106,52 C 106,10 134,10 134,52" fill="none" stroke="#b45309" stroke-width="2.5" marker-end="url(#i2l)"/>
+        <circle cx="120" cy="36" r="5" fill="#b45309"/>
+      </svg>
+    </div>
+    <div class="icon-label">02 — Light</div>
+  </div>
+
+  <div style="width:1px;background:#141e38;margin:0 6px;align-self:stretch"></div>
+
+  <!-- V3 dark -->
+  <div class="icon-wrap">
+    <div class="icon-frame" style="background:#0a0e1a">
+      <svg width="60" height="60" viewBox="0 0 240 240" fill="none">
+        <defs>
+          <marker id="i3d" viewBox="0 0 10 8" refX="9" refY="4" markerWidth="7" markerHeight="6" orient="auto">
+            <polygon points="0 0,10 4,0 8" fill="#f59e0b"/>
+          </marker>
+        </defs>
+        <circle cx="120" cy="34" r="36" fill="#f59e0b" fill-opacity="0.06"/>
+        <line x1="52" y1="164" x2="120" y2="34" stroke="#f59e0b" stroke-width="7.5" stroke-linecap="round"/>
+        <line x1="120" y1="34" x2="188" y2="164" stroke="#f59e0b" stroke-width="7.5" stroke-linecap="round"/>
+        <line x1="79" y1="108" x2="161" y2="108" stroke="#f59e0b" stroke-width="6" stroke-linecap="round"/>
+        <path d="M 104,53 C 104,8 136,8 136,53" fill="none" stroke="#f59e0b" stroke-width="3.5" marker-end="url(#i3d)"/>
+        <circle cx="120" cy="34" r="9" fill="#f59e0b" fill-opacity="0.2"/>
+        <circle cx="120" cy="34" r="4.5" fill="#f59e0b"/>
+      </svg>
+    </div>
+    <div class="icon-label">03 — Dark</div>
+  </div>
+
+  <!-- V3 gold fill -->
+  <div class="icon-wrap">
+    <div class="icon-frame" style="background:#f59e0b">
+      <svg width="60" height="60" viewBox="0 0 240 240" fill="none">
+        <defs>
+          <marker id="i3g" viewBox="0 0 10 8" refX="9" refY="4" markerWidth="7" markerHeight="6" orient="auto">
+            <polygon points="0 0,10 4,0 8" fill="#fff"/>
+          </marker>
+        </defs>
+        <line x1="52" y1="164" x2="120" y2="34" stroke="#fff" stroke-width="7.5" stroke-linecap="round"/>
+        <line x1="120" y1="34" x2="188" y2="164" stroke="#fff" stroke-width="7.5" stroke-linecap="round"/>
+        <line x1="79" y1="108" x2="161" y2="108" stroke="#fff" stroke-width="6" stroke-linecap="round"/>
+        <path d="M 104,53 C 104,8 136,8 136,53" fill="none" stroke="#fff" stroke-width="3.5" stroke-opacity="0.9" marker-end="url(#i3g)"/>
+        <circle cx="120" cy="34" r="5" fill="#fff"/>
+      </svg>
+    </div>
+    <div class="icon-label">03 — Gold</div>
+  </div>
+
+  <!-- V3 light -->
+  <div class="icon-wrap">
+    <div class="icon-frame" style="background:#fefce8">
+      <svg width="60" height="60" viewBox="0 0 240 240" fill="none">
+        <defs>
+          <marker id="i3l" viewBox="0 0 10 8" refX="9" refY="4" markerWidth="7" markerHeight="6" orient="auto">
+            <polygon points="0 0,10 4,0 8" fill="#b45309"/>
+          </marker>
+        </defs>
+        <line x1="52" y1="164" x2="120" y2="34" stroke="#b45309" stroke-width="7.5" stroke-linecap="round"/>
+        <line x1="120" y1="34" x2="188" y2="164" stroke="#b45309" stroke-width="7.5" stroke-linecap="round"/>
+        <line x1="79" y1="108" x2="161" y2="108" stroke="#b45309" stroke-width="6" stroke-linecap="round"/>
+        <path d="M 104,53 C 104,8 136,8 136,53" fill="none" stroke="#b45309" stroke-width="3.5" marker-end="url(#i3l)"/>
+        <circle cx="120" cy="34" r="5" fill="#b45309"/>
+      </svg>
+    </div>
+    <div class="icon-label">03 — Light</div>
+  </div>
+
+</div>
+
+<div style="text-align:center;margin-top:52px;font-size:11px;color:#2a3a4a;letter-spacing:0.5px">
+  All three concepts use the gold colorway · A letterform + RL loop · Dark, gold fill, and light variants shown
+</div>
+
+</body>
+</html>

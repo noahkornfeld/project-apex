@@ -1,0 +1,2147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Project APEX — Interactive Model Pipeline</title>
+<style>
+/* ── Reset & base ── */
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  background: #0a0e1a;
+  color: #e0e6f0;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* ── Header ── */
+.header {
+  text-align: center;
+  padding: 28px 24px 14px;
+  background: linear-gradient(180deg, #0f1528 0%, #0a0e1a 100%);
+  border-bottom: 1px solid #141e38;
+}
+.header-eyebrow {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: #3b5299;
+  margin-bottom: 6px;
+}
+.header h1 {
+  font-size: 22px;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: -0.4px;
+}
+.header-sub {
+  font-size: 12px;
+  color: #6a7a9a;
+  margin-top: 5px;
+}
+.header-hint {
+  font-size: 11px;
+  color: #364060;
+  margin-top: 8px;
+}
+.header-hint span { color: #4a6090; }
+
+/* ── Legend ── */
+.legend {
+  display: flex;
+  justify-content: center;
+  gap: 18px;
+  padding: 14px 24px 12px;
+  flex-wrap: wrap;
+}
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10.5px;
+  color: #5a6a8a;
+  cursor: default;
+}
+.legend-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+/* ── Main layout ── */
+.main-wrap {
+  position: relative;
+  min-height: calc(100vh - 140px);
+}
+
+/* ── Pipeline scroll wrapper ── */
+.pipeline-scroll {
+  overflow-x: auto;
+  padding: 24px 32px 0;
+  transition: padding-right 0.3s cubic-bezier(0.4,0,0.2,1);
+}
+.pipeline-scroll.panel-open {
+  padding-right: 420px;
+}
+
+/* ── Flow container ── */
+.flow-container {
+  min-width: 1100px;
+  max-width: 1240px;
+  margin: 0 auto;
+}
+
+/* ── Stages row ── */
+.stages-row {
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+  gap: 0;
+}
+
+/* ── Stage card ── */
+.stage-card {
+  width: 158px;
+  flex-shrink: 0;
+  background: #0f1424;
+  border-radius: 12px;
+  padding: 16px 12px 14px;
+  cursor: pointer;
+  border: 1.5px solid transparent;
+  transition: border-color 0.18s, box-shadow 0.18s, transform 0.2s;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  position: relative;
+  overflow: hidden;
+  animation: cardFadeIn 0.55s ease-out both;
+}
+.stage-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, transparent 60%, rgba(255,255,255,0.02));
+  pointer-events: none;
+}
+.stage-card:hover {
+  transform: translateY(-4px);
+}
+.stage-card.active {
+  transform: translateY(-4px);
+}
+
+@keyframes cardFadeIn {
+  from { opacity: 0; transform: translateY(18px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.stage-card:nth-of-type(1)  { animation-delay: 0.04s; }
+.stage-card:nth-of-type(3)  { animation-delay: 0.11s; }
+.stage-card:nth-of-type(5)  { animation-delay: 0.18s; }
+.stage-card:nth-of-type(7)  { animation-delay: 0.25s; }
+.stage-card:nth-of-type(9)  { animation-delay: 0.32s; }
+.stage-card:nth-of-type(11) { animation-delay: 0.39s; }
+
+/* ── Stage badge ── */
+.stage-badge {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  width: 100%;
+}
+.stage-num {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+.stage-tag {
+  font-size: 8.5px;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  opacity: 0.65;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ── Stage icon ── */
+.stage-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 11px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin: 2px 0;
+}
+.stage-icon svg {
+  width: 22px;
+  height: 22px;
+}
+
+/* ── Card text ── */
+.stage-name {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #fff;
+  text-align: center;
+  line-height: 1.3;
+}
+.stage-desc {
+  font-size: 10px;
+  color: #6a7a9a;
+  text-align: center;
+  line-height: 1.45;
+  flex: 1;
+}
+.click-hint {
+  font-size: 9px;
+  color: #2a3a5a;
+  margin-top: 2px;
+  transition: color 0.2s;
+}
+.stage-card:hover .click-hint { color: #4a5a7a; }
+
+/* ── Connector ── */
+.connector {
+  width: 48px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  position: relative;
+}
+.connector svg {
+  width: 48px;
+  height: 36px;
+  overflow: visible;
+}
+.conn-line {
+  transition: stroke-opacity 0.18s;
+}
+.connector:hover .conn-line {
+  stroke-opacity: 1 !important;
+}
+
+/* ── Feedback loop ── */
+.feedback-wrap {
+  padding: 4px 0 24px;
+  position: relative;
+}
+.feedback-wrap svg {
+  display: block;
+  width: 100%;
+}
+
+/* ── Tooltip ── */
+.tooltip {
+  position: fixed;
+  background: #111d38;
+  border: 1px solid #1e2d55;
+  border-radius: 9px;
+  padding: 12px 15px;
+  font-size: 12px;
+  line-height: 1.6;
+  color: #b0c0e0;
+  max-width: 310px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+  z-index: 2000;
+  box-shadow: 0 10px 36px rgba(0,0,0,0.6);
+}
+.tooltip.visible { opacity: 1; }
+.tt-title {
+  font-weight: 700;
+  color: #fff;
+  font-size: 13px;
+  margin-bottom: 6px;
+}
+.tt-mono {
+  font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+  background: #0b1020;
+  padding: 3px 7px;
+  border-radius: 4px;
+  display: block;
+  font-size: 10.5px;
+  color: #6ee7b7;
+  margin: 5px 0;
+  line-height: 1.5;
+}
+
+/* ── Deep-dive overlay ── */
+.deepdive {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: #080c18;
+  overflow-y: auto;
+  transform: translateX(100%);
+  transition: transform 0.32s cubic-bezier(0.4,0,0.2,1);
+}
+.deepdive.open {
+  transform: translateX(0);
+}
+
+.dd-nav {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 28px;
+  background: #0a0e1a;
+  border-bottom: 1px solid #1a2540;
+  flex-shrink: 0;
+}
+
+.dd-back {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 16px;
+  background: transparent;
+  border: 1px solid #2a3860;
+  border-radius: 6px;
+  color: #8090b0;
+  font-size: 12px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.15s;
+}
+
+.dd-back:hover {
+  border-color: #4a6090;
+  color: #c0d0f0;
+  background: #0f1528;
+}
+
+.dd-nav-label {
+  font-size: 13px;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+/* Panel info inside deepdive */
+.dd-panel-wrap {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 32px 28px 20px;
+}
+
+.dd-panel-header {
+  margin-bottom: 24px;
+}
+
+.dd-panel-eyebrow {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  margin-bottom: 5px;
+}
+
+.dd-panel-title {
+  font-size: 22px;
+  font-weight: 700;
+  color: #fff;
+  margin-bottom: 4px;
+}
+
+.dd-panel-sub {
+  font-size: 13px;
+  color: #5a6a8a;
+}
+
+/* ── Mission & Constraints Section ── */
+.mission-section {
+  max-width: 1240px;
+  margin: 28px auto 0;
+  padding: 0 32px;
+}
+.mission-header {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: #3b5299;
+  margin-bottom: 10px;
+}
+.mission-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 0;
+}
+.mission-card {
+  background: #080d1c;
+  border: 1px solid #141e38;
+  border-radius: 10px;
+  padding: 16px;
+}
+.mission-card-label {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: #3a4a6a;
+  margin-bottom: 8px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid #111a30;
+}
+.mission-card-content {
+  font-size: 11.5px;
+  color: #8a9abb;
+  line-height: 1.68;
+}
+.mission-objective {
+  grid-column: 1 / 3;
+  border-color: #3b82f680;
+}
+.mission-constraints {
+  grid-column: 3;
+  border-color: #10b98180;
+}
+.mission-success {
+  grid-column: 4;
+  border-color: #f59e0b80;
+}
+.mission-formula {
+  font-family: 'SF Mono','Fira Code',monospace;
+  font-size: 12px;
+  color: #a0c0ff;
+  background: #060a14;
+  padding: 8px 12px;
+  border-radius: 6px;
+  border: 1px solid #1a2540;
+  margin: 8px 0;
+  line-height: 1.5;
+}
+.constraint-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin-bottom: 5px;
+  font-size: 11px;
+  color: #7a9abb;
+}
+.constraint-dot {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: #10b981;
+  flex-shrink: 0;
+  margin-top: 5px;
+}
+.success-row {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  margin-bottom: 5px;
+  font-size: 11px;
+}
+.success-metric {
+  font-family: 'SF Mono','Fira Code',monospace;
+  color: #6ee7b7;
+  font-size: 10px;
+  white-space: nowrap;
+}
+.success-thresh {
+  color: #fff;
+  font-weight: 700;
+  font-size: 11px;
+}
+.success-desc { color: #4a5a7a; font-size: 10px; }
+.train-param-row {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+  margin-bottom: 4px;
+  font-size: 10px;
+  flex-wrap: nowrap;
+}
+.train-param-key {
+  font-family: 'SF Mono','Fira Code',monospace;
+  color: #6ee7b7;
+  font-size: 9.5px;
+  white-space: nowrap;
+  min-width: 82px;
+  flex-shrink: 0;
+}
+.train-param-val {
+  color: #ffffff;
+  font-weight: 700;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.train-param-note { color: #4a5a7a; font-size: 9px; flex: 1; }
+
+/* ── Eval & Training Section ── */
+.eval-section {
+  max-width: 1240px;
+  margin: 32px auto 0;
+  padding: 0 32px 48px;
+}
+.eval-header {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: #3b5299;
+  margin-bottom: 10px;
+}
+.eval-grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 16px;
+}
+.eval-card {
+  background: #080d1c;
+  border: 1px solid #141e38;
+  border-radius: 10px;
+  padding: 18px;
+}
+.eval-card-label {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: #3a4a6a;
+  margin-bottom: 12px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid #111a30;
+}
+.fold-diagram {
+  width: 100%;
+  overflow-x: auto;
+}
+.eval-facts {
+  font-size: 11.5px;
+  color: #8a9abb;
+  line-height: 1.7;
+}
+.eval-fact-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.eval-fact-key {
+  font-family: 'SF Mono','Fira Code',monospace;
+  font-size: 10px;
+  color: #6ee7b7;
+  background: #0b1a18;
+  padding: 2px 7px;
+  border-radius: 4px;
+  border: 1px solid #1a3a30;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+.eval-fact-val { color: #c0d0f0; font-weight: 600; }
+.eval-fact-desc { color: #4a5a7a; font-size: 10.5px; display: block; margin-top: 1px; }
+
+/* ── Key Design Decision callout ── */
+.dd-design-note {
+  background: #0a1628;
+  border: 1px solid #1e3060;
+  border-left: 3px solid var(--stage-color, #4a7fff);
+  border-radius: 6px;
+  padding: 12px 16px;
+  margin: 12px 0;
+  font-size: 11.5px;
+  color: #7a9abb;
+  line-height: 1.65;
+}
+.dd-design-note-title {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--stage-color, #4a7fff);
+  margin-bottom: 5px;
+}
+
+/* ── Timeline visual ── */
+.dd-timeline {
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+  margin: 12px 0;
+  overflow-x: auto;
+}
+.dd-tl-node {
+  flex: 1;
+  min-width: 120px;
+  background: #080d1c;
+  border: 1px solid #141e38;
+  border-radius: 8px;
+  padding: 10px 12px;
+  text-align: center;
+}
+.dd-tl-node-label {
+  font-size: 10px;
+  font-weight: 700;
+  color: #c0d0f0;
+  margin-bottom: 3px;
+}
+.dd-tl-node-desc {
+  font-size: 9.5px;
+  color: #4a5a7a;
+  line-height: 1.4;
+}
+.dd-tl-arrow {
+  display: flex;
+  align-items: center;
+  padding: 0 8px;
+  color: #2a3a5a;
+  font-size: 16px;
+  flex-shrink: 0;
+}
+
+/* ── Feature group table in deep-dive ── */
+.dd-feature-group {
+  margin-bottom: 14px;
+}
+.dd-feature-group-title {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  padding: 4px 10px;
+  border-radius: 4px;
+  margin-bottom: 6px;
+  display: inline-block;
+}
+.dd-feature-items {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+.dd-feature-chip {
+  font-family: 'SF Mono','Fira Code',monospace;
+  font-size: 10px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  border: 1px solid;
+  background: rgba(0,0,0,0.3);
+}
+
+/* ── Reward terms visual ── */
+.dd-reward-term {
+  display: grid;
+  grid-template-columns: 2fr 1fr 2fr;
+  gap: 8px;
+  align-items: start;
+  margin-bottom: 10px;
+  padding: 10px 12px;
+  background: #060a14;
+  border: 1px solid #141e38;
+  border-radius: 6px;
+  font-size: 11px;
+}
+.dd-reward-formula {
+  font-family: 'SF Mono','Fira Code',monospace;
+  font-size: 10.5px;
+  color: #a0c0ff;
+}
+.dd-reward-lambda {
+  font-size: 10px;
+  color: #6ee7b7;
+  font-family: 'SF Mono','Fira Code',monospace;
+}
+.dd-reward-desc { color: #7a9abb; font-size: 10.5px; line-height: 1.5; }
+
+/* ── mini-diagram caption ── */
+.dd-mini-caption {
+  text-align: center;
+  font-size: 11px;
+  color: #4a5a7a;
+  margin-top: 8px;
+  font-style: italic;
+}
+
+/* ── Norm pipeline steps ── */
+.dd-norm-steps {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  flex-wrap: wrap;
+  margin: 10px 0;
+}
+.dd-norm-step {
+  background: #080d1c;
+  border: 1px solid #141e38;
+  border-radius: 6px;
+  padding: 8px 12px;
+  font-size: 11px;
+  color: #8a9abb;
+  flex: 1;
+  min-width: 100px;
+  text-align: center;
+}
+.dd-norm-step-num {
+  font-size: 9px;
+  font-weight: 700;
+  color: #3a4a6a;
+  margin-bottom: 3px;
+  display: block;
+}
+.dd-norm-arrow {
+  padding: 0 6px;
+  color: #2a3a5a;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+/* ── Stage 4 Architecture Diagram ── */
+.arch-diagram {
+  background: #060a14;
+  border: 1px solid #1a2540;
+  border-radius: 8px;
+  padding: 14px 12px;
+  margin-bottom: 16px;
+}
+.arch-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+.arch-box {
+  border-radius: 5px;
+  padding: 5px 10px;
+  font-size: 10px;
+  font-weight: 600;
+  text-align: center;
+  border: 1px solid;
+  line-height: 1.35;
+}
+.arch-box-amber {
+  background: rgba(245,158,11,0.12);
+  border-color: #f59e0b80;
+  color: #fbbf24;
+}
+.arch-box-teal {
+  background: rgba(6,182,212,0.1);
+  border-color: #06b6d480;
+  color: #22d3ee;
+}
+.arch-box-muted {
+  background: rgba(59,130,246,0.08);
+  border-color: #3b82f640;
+  color: #93c5fd;
+}
+.arch-arrow {
+  color: #3a4a6a;
+  font-size: 12px;
+  line-height: 1;
+}
+.arch-split-label {
+  text-align: center;
+  font-size: 9px;
+  color: #3a5a7a;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  margin: 4px 0 6px 0;
+}
+.arch-branch-row {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  align-items: flex-start;
+  margin-top: 2px;
+}
+.arch-branch {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  flex: 1;
+  max-width: 240px;
+}
+.nn-subsection {
+  margin-bottom: 12px;
+}
+.nn-subsection-header {
+  font-size: 10.5px;
+  font-weight: 700;
+  color: #f59e0b;
+  margin-bottom: 5px;
+}
+/* ── Stage 5 w_pre vs w_exec explainer ── */
+.wpw-grid {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.wpw-box {
+  flex: 1;
+  border-radius: 7px;
+  padding: 12px;
+  border: 1px solid #10b98160;
+  background: rgba(16,185,129,0.06);
+}
+.wpw-box-title {
+  font-family: 'SF Mono','Fira Code',monospace;
+  font-size: 11px;
+  font-weight: 700;
+  color: #10b981;
+  margin-bottom: 6px;
+}
+.wpw-box-content {
+  font-size: 10.5px;
+  color: #7a9abb;
+  line-height: 1.55;
+}
+.wpw-why {
+  font-size: 11px;
+  color: #6a7a9a;
+  line-height: 1.6;
+  padding: 10px 12px;
+  background: rgba(16,185,129,0.04);
+  border-left: 2px solid #10b98140;
+  border-radius: 0 6px 6px 0;
+  margin-bottom: 12px;
+}
+
+
+/* Flow section divider */
+.dd-divider {
+  border: none;
+  border-top: 1px solid #1a2540;
+  margin: 8px 0 0;
+}
+
+.dd-flow-header {
+  max-width: 900px;
+  margin: 28px auto 0;
+  padding: 0 28px;
+}
+
+.dd-flow-header h3 {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: #3a4a6a;
+  margin-bottom: 20px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #111a30;
+}
+
+.dd-section {
+  max-width: 1080px;
+  margin: 0 auto 32px;
+  padding: 0 28px;
+}
+
+.dd-section-title {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: #3a4a6a;
+  margin-bottom: 14px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid #111a30;
+}
+
+.dd-svg-wrap {
+  width: 100%;
+  overflow-x: auto;
+  background: #060a14;
+  border: 1px solid #141e38;
+  border-radius: 8px;
+  padding: 12px 0;
+}
+
+.dd-svg-wrap svg {
+  display: block;
+  margin: 0 auto;
+}
+
+.dd-tensor-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11.5px;
+}
+
+.dd-tensor-table th {
+  text-align: left;
+  padding: 7px 12px;
+  color: #3a4a6a;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  border-bottom: 1px solid #141e38;
+}
+
+.dd-tensor-table td {
+  padding: 8px 12px;
+  border-bottom: 1px solid #0d1525;
+  vertical-align: top;
+}
+
+.dd-tensor-name {
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  color: #6ee7b7;
+  font-size: 11px;
+}
+
+.dd-tensor-shape {
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  color: #7a9aff;
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.dd-tensor-desc {
+  color: #5a6a8a;
+}
+
+.dd-ribbon {
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+  border: 1px solid #141e38;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.dd-ribbon > div {
+  flex: 1;
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.dd-ribbon-label {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: #3a4a6a;
+  margin-bottom: 5px;
+}
+
+.dd-ribbon-content {
+  font-family: 'SF Mono','Fira Code',monospace;
+  font-size: 10px;
+  color: #4a5a7a;
+}
+
+.dd-ribbon-center {
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  font-size: 18px;
+  color: #2a3a55;
+  background: #060a14;
+}
+
+.dd-svgtip {
+  position: fixed;
+  background: #111d38;
+  border: 1px solid #1e2d55;
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: #b0c0e0;
+  max-width: 280px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.12s;
+  z-index: 300;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.6);
+}
+
+.dd-svgtip.visible {
+  opacity: 1;
+}
+
+.dd-node {
+  cursor: default;
+}
+
+.dd-node[data-tip] {
+  cursor: help;
+}
+
+/* Panel content sections */
+.panel-section {
+  margin-bottom: 18px;
+}
+
+.panel-section-title {
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: #3a4a6a;
+  margin-bottom: 9px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid #111a30;
+}
+
+.panel-section p {
+  font-size: 12px;
+  color: #8a9abb;
+  line-height: 1.72;
+}
+
+.io-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  margin-bottom: 7px;
+  font-size: 11.5px;
+}
+
+.io-arrow {
+  flex-shrink: 0;
+  margin-top: 1px;
+  font-size: 11px;
+}
+
+.io-text {
+  color: #8090b0;
+  line-height: 1.5;
+}
+
+.io-chip {
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  font-size: 10px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  display: inline;
+  margin-right: 3px;
+}
+
+.param-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 5px 8px;
+  margin-bottom: 7px;
+  font-size: 11.5px;
+}
+
+.param-key {
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  font-size: 10.5px;
+  color: #6ee7b7;
+  background: #0b1a18;
+  padding: 2px 7px;
+  border-radius: 4px;
+  white-space: nowrap;
+  border: 1px solid #1a3a30;
+}
+
+.param-val {
+  font-weight: 700;
+  color: #fff;
+  white-space: nowrap;
+}
+
+.param-desc {
+  color: #4a5a7a;
+  font-size: 10.5px;
+  flex-basis: 100%;
+  padding-left: 4px;
+  padding-top: 1px;
+  line-height: 1.4;
+  border-left: 2px solid #1a2540;
+  margin-left: 2px;
+}
+</style>
+</head>
+<body>
+
+<!-- ════════════════ HEADER ════════════════ -->
+<div class="header">
+  <div class="header-eyebrow">Canonical Engineering Reference v1.2</div>
+  <h1>Project APEX — Interactive Model Pipeline</h1>
+  <div class="header-sub">Off-Policy SAC Portfolio Agent · Nasdaq-100 Universe (K_max=110) · QQQ Benchmark</div>
+  <div class="header-hint">
+    <span>Hover</span> any stage for a plain-English summary · 
+    <span>Click</span> to open the deep-dive panel · 
+    <span>Hover arrows</span> to see what data flows between stages
+  </div>
+</div>
+
+<!-- ════════════════ LEGEND ════════════════ -->
+<div class="legend">
+  <div class="legend-item"><div class="legend-dot" style="background:#3b82f6"></div>Data Pipeline</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#8b5cf6"></div>Feature Engineering</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#06b6d4"></div>Observation Space</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#f59e0b"></div>Neural Encoder</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#10b981"></div>Actor → Decision</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#ef4444"></div>Execution &amp; SAC Loop</div>
+</div>
+
+<!-- ════════════════ MISSION & CONSTRAINTS ════════════════ -->
+<section class="mission-section">
+  <div class="mission-header">Project Mission</div>
+  <div class="mission-grid">
+
+    <div class="mission-card mission-objective">
+      <div class="mission-card-label">Core Objective</div>
+      <div class="mission-card-content">
+        <p style="margin-bottom:8px">An off-policy SAC reinforcement learning agent manages a <strong style="color:#c0d0f0">long-only equity portfolio</strong> drawn from the Nasdaq-100 universe, rebalancing <strong style="color:#c0d0f0">weekly</strong>. The agent optimizes for risk-adjusted excess return over the QQQ ETF benchmark.</p>
+        <div class="mission-formula">J(π) = E<sub>π</sub>[ Σ<sub>t</sub> γ<sup>t</sup> · r<sub>t</sub> ]</div>
+        <div style="margin-top:8px;display:grid;grid-template-columns:auto 1fr;gap:2px 8px;font-size:10px;line-height:1.55;">
+          <span style="font-family:'SF Mono','Fira Code',monospace;color:#a0c0ff">J(π)</span><span style="color:#4a5a7a">Total expected cumulative reward — what the agent maximizes</span>
+          <span style="font-family:'SF Mono','Fira Code',monospace;color:#a0c0ff">π</span><span style="color:#4a5a7a">The policy — the neural network that picks portfolio weights each week</span>
+          <span style="font-family:'SF Mono','Fira Code',monospace;color:#a0c0ff">E<sub>π</sub></span><span style="color:#4a5a7a">Expected value over many episodes run under policy π</span>
+          <span style="font-family:'SF Mono','Fira Code',monospace;color:#a0c0ff">Σ<sub>t</sub></span><span style="color:#4a5a7a">Sum across all future weekly time steps</span>
+          <span style="font-family:'SF Mono','Fira Code',monospace;color:#a0c0ff">γ<sup>t</sup></span><span style="color:#4a5a7a">Discount factor (γ=0.975) — rewards far in the future count for less</span>
+          <span style="font-family:'SF Mono','Fira Code',monospace;color:#a0c0ff">r<sub>t</sub></span><span style="color:#4a5a7a">Weekly reward: excess return vs QQQ minus risk, cost &amp; violation penalties</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="mission-card mission-constraints">
+      <div class="mission-card-label">Hard Portfolio Constraints</div>
+      <div class="mission-card-content">
+        <div class="constraint-item"><div class="constraint-dot"></div><span>Long-only: w<sub>exec,i</sub> ≥ 0 for all i</span></div>
+        <div class="constraint-item"><div class="constraint-dot"></div><span>Fully invested: Σ w<sub>exec,i</sub> = 1.0 always</span></div>
+        <div class="constraint-item"><div class="constraint-dot"></div><span>Per-name cap: w<sub>exec,i</sub> ≤ 20%</span></div>
+        <div class="constraint-item"><div class="constraint-dot"></div><span>Sector cap: Σ<sub>sector</sub> w<sub>exec,i</sub> ≤ 50%</span></div>
+        <div class="constraint-item"><div class="constraint-dot"></div><span>Non-member exposure = 0 (mask enforced)</span></div>
+        <p style="font-size:10px;color:#3a4a6a;margin-top:8px">Enforced by a differentiable ConstraintProjector at every step.</p>
+      </div>
+    </div>
+
+    <div class="mission-card mission-success">
+      <div class="mission-card-label">Training at a Glance</div>
+      <div class="mission-card-content">
+        <div class="train-param-row"><span class="train-param-key">Algorithm</span><span class="train-param-val">Off-Policy SAC</span><span class="train-param-note">Entropy tuning</span></div>
+        <div class="train-param-row"><span class="train-param-key">Discount γ</span><span class="train-param-val">0.975</span><span class="train-param-note">Values long-run returns</span></div>
+        <div class="train-param-row"><span class="train-param-key">n-step returns</span><span class="train-param-val">n = 4 steps</span><span class="train-param-note">Accumulates 4 weeks of discounted reward</span></div>
+        <div class="train-param-row"><span class="train-param-key">Replay buffer</span><span class="train-param-val">800 transitions</span><span class="train-param-note">Exp. recency weighting</span></div>
+        <div class="train-param-row"><span class="train-param-key">Batch size</span><span class="train-param-val">B = 64</span><span class="train-param-note">Per gradient update</span></div>
+        <div class="train-param-row"><span class="train-param-key">Updates/step</span><span class="train-param-val">20</span><span class="train-param-note">Gradient updates per env step</span></div>
+        <div class="train-param-row"><span class="train-param-key">Distrib. critics</span><span class="train-param-val">N = 32 quantiles</span><span class="train-param-note">QR-Huber loss</span></div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ════════════════ PIPELINE ════════════════ -->
+<div class="main-wrap">
+<div class="pipeline-scroll" id="pipelineScroll">
+<div class="flow-container">
+
+  <!-- ── STAGES ROW ── -->
+  <div class="stages-row">
+
+    <!-- STAGE 1: Data Pipeline -->
+    <div class="stage-card" data-stage="0" id="card-0">
+      <div class="stage-badge">
+        <div class="stage-num" style="background:rgba(59,130,246,0.2);color:#60a5fa;">1</div>
+        <div class="stage-tag" style="color:#3b82f6;">Data Pipeline</div>
+      </div>
+      <div class="stage-icon" style="background:rgba(59,130,246,0.1);">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <ellipse cx="12" cy="5" rx="9" ry="3"/>
+          <path d="M21 12c0 1.657-4.03 3-9 3S3 13.657 3 12"/>
+          <path d="M3 5v14c0 1.657 4.03 3 9 3s9-1.343 9-3V5"/>
+        </svg>
+      </div>
+      <div class="stage-name">Data Pipeline</div>
+      <div class="stage-desc">Raw price bars + NDX membership → validated, tradeable asset universe</div>
+      <div class="click-hint">↓ click to explore</div>
+    </div>
+
+    <!-- CONNECTOR 0→1 -->
+    <div class="connector" data-conn="0" id="conn-0">
+      <svg viewBox="0 0 48 36" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <marker id="a01" viewBox="0 0 10 7" refX="9" refY="3.5" markerWidth="7" markerHeight="5" orient="auto">
+            <polygon points="0 0,10 3.5,0 7" fill="#3b82f6"/>
+          </marker>
+        </defs>
+        <line class="conn-line" x1="3" y1="18" x2="42" y2="18"
+          stroke="#3b82f6" stroke-width="1.5" stroke-opacity="0.45" marker-end="url(#a01)"/>
+        <circle r="2.5" fill="#3b82f6">
+          <animateMotion dur="2.2s" repeatCount="indefinite" path="M3,18 L42,18"/>
+          <animate attributeName="opacity" values="0;0.9;0" dur="2.2s" repeatCount="indefinite"/>
+        </circle>
+      </svg>
+    </div>
+
+    <!-- STAGE 2: Feature Engineering -->
+    <div class="stage-card" data-stage="1" id="card-1">
+      <div class="stage-badge">
+        <div class="stage-num" style="background:rgba(139,92,246,0.2);color:#a78bfa;">2</div>
+        <div class="stage-tag" style="color:#8b5cf6;">Feature Eng.</div>
+      </div>
+      <div class="stage-icon" style="background:rgba(139,92,246,0.1);">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="12" width="4" height="8" rx="1"/>
+          <rect x="10" y="7" width="4" height="13" rx="1"/>
+          <rect x="17" y="3" width="4" height="17" rx="1"/>
+          <line x1="3" y1="5" x2="21" y2="5" stroke-dasharray="3 2"/>
+        </svg>
+      </div>
+      <div class="stage-name">Feature Engineering</div>
+      <div class="stage-desc">25 signals per asset: 17 time-series + 8 cross-universe comparisons, plus global macro &amp; portfolio context</div>
+      <div class="click-hint">↓ click to explore</div>
+    </div>
+
+    <!-- CONNECTOR 1→2 -->
+    <div class="connector" data-conn="1" id="conn-1">
+      <svg viewBox="0 0 48 36" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <marker id="a12" viewBox="0 0 10 7" refX="9" refY="3.5" markerWidth="7" markerHeight="5" orient="auto">
+            <polygon points="0 0,10 3.5,0 7" fill="#8b5cf6"/>
+          </marker>
+        </defs>
+        <line class="conn-line" x1="3" y1="18" x2="42" y2="18"
+          stroke="#8b5cf6" stroke-width="1.5" stroke-opacity="0.45" marker-end="url(#a12)"/>
+        <circle r="2.5" fill="#8b5cf6">
+          <animateMotion dur="2.2s" repeatCount="indefinite" begin="0.37s" path="M3,18 L42,18"/>
+          <animate attributeName="opacity" values="0;0.9;0" dur="2.2s" repeatCount="indefinite" begin="0.37s"/>
+        </circle>
+      </svg>
+    </div>
+
+    <!-- STAGE 3: Observation Space -->
+    <div class="stage-card" data-stage="2" id="card-2">
+      <div class="stage-badge">
+        <div class="stage-num" style="background:rgba(6,182,212,0.18);color:#22d3ee;">3</div>
+        <div class="stage-tag" style="color:#06b6d4;">Observation</div>
+      </div>
+      <div class="stage-icon" style="background:rgba(6,182,212,0.09);">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#06b6d4" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="2" y="2" width="8" height="8" rx="1.5"/>
+          <rect x="14" y="2" width="8" height="8" rx="1.5"/>
+          <rect x="2" y="14" width="8" height="8" rx="1.5"/>
+          <rect x="14" y="14" width="8" height="8" rx="1.5"/>
+        </svg>
+      </div>
+      <div class="stage-name">Observation Space</div>
+      <div class="stage-desc">State bundle s<sub>t</sub> = (x<sub>t</sub> [60×110×25], g<sub>t</sub> [20], mask<sub>t</sub> [110]): complete weekly snapshot</div>
+      <div class="click-hint">↓ click to explore</div>
+    </div>
+
+    <!-- CONNECTOR 2→3 -->
+    <div class="connector" data-conn="2" id="conn-2">
+      <svg viewBox="0 0 48 36" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <marker id="a23" viewBox="0 0 10 7" refX="9" refY="3.5" markerWidth="7" markerHeight="5" orient="auto">
+            <polygon points="0 0,10 3.5,0 7" fill="#06b6d4"/>
+          </marker>
+        </defs>
+        <line class="conn-line" x1="3" y1="18" x2="42" y2="18"
+          stroke="#06b6d4" stroke-width="1.5" stroke-opacity="0.45" marker-end="url(#a23)"/>
+        <circle r="2.5" fill="#06b6d4">
+          <animateMotion dur="2.2s" repeatCount="indefinite" begin="0.74s" path="M3,18 L42,18"/>
+          <animate attributeName="opacity" values="0;0.9;0" dur="2.2s" repeatCount="indefinite" begin="0.74s"/>
+        </circle>
+      </svg>
+    </div>
+
+    <!-- STAGE 4: Neural Network -->
+    <div class="stage-card" data-stage="3" id="card-3">
+      <div class="stage-badge">
+        <div class="stage-num" style="background:rgba(245,158,11,0.18);color:#fbbf24;">4</div>
+        <div class="stage-tag" style="color:#f59e0b;">Neural Encoder</div>
+      </div>
+      <div class="stage-icon" style="background:rgba(245,158,11,0.09);">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="5" cy="6" r="1.8"/><circle cx="5" cy="18" r="1.8"/>
+          <circle cx="12" cy="4" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="12" cy="20" r="1.8"/>
+          <circle cx="19" cy="8" r="1.8"/><circle cx="19" cy="16" r="1.8"/>
+          <line x1="6.8" y1="6" x2="10.2" y2="5"/><line x1="6.8" y1="6" x2="10.2" y2="12"/>
+          <line x1="6.8" y1="18" x2="10.2" y2="12"/><line x1="6.8" y1="18" x2="10.2" y2="20"/>
+          <line x1="13.8" y1="4" x2="17.2" y2="8"/><line x1="13.8" y1="12" x2="17.2" y2="8"/>
+          <line x1="13.8" y1="12" x2="17.2" y2="16"/><line x1="13.8" y1="20" x2="17.2" y2="16"/>
+        </svg>
+      </div>
+      <div class="stage-name">Neural Encoder</div>
+      <div class="stage-desc">Shared TCN + Cross-Asset Attention → per-asset vectors h[i] used by Actor &amp; Critics</div>
+      <div class="click-hint">↓ click to explore</div>
+    </div>
+
+    <!-- CONNECTOR 3→4 -->
+    <div class="connector" data-conn="3" id="conn-3">
+      <svg viewBox="0 0 48 36" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <marker id="a34" viewBox="0 0 10 7" refX="9" refY="3.5" markerWidth="7" markerHeight="5" orient="auto">
+            <polygon points="0 0,10 3.5,0 7" fill="#f59e0b"/>
+          </marker>
+        </defs>
+        <line class="conn-line" x1="3" y1="18" x2="42" y2="18"
+          stroke="#f59e0b" stroke-width="1.5" stroke-opacity="0.45" marker-end="url(#a34)"/>
+        <circle r="2.5" fill="#f59e0b">
+          <animateMotion dur="2.2s" repeatCount="indefinite" begin="1.11s" path="M3,18 L42,18"/>
+          <animate attributeName="opacity" values="0;0.9;0" dur="2.2s" repeatCount="indefinite" begin="1.11s"/>
+        </circle>
+      </svg>
+    </div>
+
+    <!-- STAGE 5: Action & Constraint Projection -->
+    <div class="stage-card" data-stage="4" id="card-4">
+      <div class="stage-badge">
+        <div class="stage-num" style="background:rgba(16,185,129,0.18);color:#34d399;">5</div>
+        <div class="stage-tag" style="color:#10b981;">Actor → Decision</div>
+      </div>
+      <div class="stage-icon" style="background:rgba(16,185,129,0.09);">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="9"/>
+          <circle cx="12" cy="12" r="4"/>
+          <line x1="12" y1="3" x2="12" y2="6"/>
+          <line x1="12" y1="18" x2="12" y2="21"/>
+          <line x1="3" y1="12" x2="6" y2="12"/>
+          <line x1="18" y1="12" x2="21" y2="12"/>
+        </svg>
+      </div>
+      <div class="stage-name">Actor → Decision</div>
+      <div class="stage-desc">Actor head → w<sub>pre</sub> → ConstraintProjector → w<sub>exec</sub> (legal, fully-invested portfolio)</div>
+      <div class="click-hint">↓ click to explore</div>
+    </div>
+
+    <!-- CONNECTOR 4→5 -->
+    <div class="connector" data-conn="4" id="conn-4">
+      <svg viewBox="0 0 48 36" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <marker id="a45" viewBox="0 0 10 7" refX="9" refY="3.5" markerWidth="7" markerHeight="5" orient="auto">
+            <polygon points="0 0,10 3.5,0 7" fill="#10b981"/>
+          </marker>
+        </defs>
+        <line class="conn-line" x1="3" y1="18" x2="42" y2="18"
+          stroke="#10b981" stroke-width="1.5" stroke-opacity="0.45" marker-end="url(#a45)"/>
+        <circle r="2.5" fill="#10b981">
+          <animateMotion dur="2.2s" repeatCount="indefinite" begin="1.48s" path="M3,18 L42,18"/>
+          <animate attributeName="opacity" values="0;0.9;0" dur="2.2s" repeatCount="indefinite" begin="1.48s"/>
+        </circle>
+      </svg>
+    </div>
+
+    <!-- STAGE 6: Environment & Reward -->
+    <div class="stage-card" data-stage="5" id="card-5">
+      <div class="stage-badge">
+        <div class="stage-num" style="background:rgba(239,68,68,0.18);color:#f87171;">6</div>
+        <div class="stage-tag" style="color:#ef4444;">Execution &amp; SAC</div>
+      </div>
+      <div class="stage-icon" style="background:rgba(239,68,68,0.09);">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+        </svg>
+      </div>
+      <div class="stage-name">Execution &amp; SAC Loop</div>
+      <div class="stage-desc">Trades fill at open → NAV → 5-term reward → Replay Buffer → Critics + Actor update</div>
+      <div class="click-hint">↓ click to explore</div>
+    </div>
+
+  </div><!-- .stages-row -->
+
+  <!-- ── ENHANCED FEEDBACK ARC ── -->
+  <div class="feedback-wrap">
+    <svg viewBox="0 0 1150 90" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet">
+      <defs>
+        <!--
+          Standard rightward arrowhead (0,0 → 10,3.5 → 0,7).
+          refX=10 puts the tip on the path endpoint.
+          orient="auto" rotates so +x aligns with the path tangent.
+          At x=720,y=2 the cubic Bezier tangent is straight UP (SVG -y),
+          so the arrowhead tip points upward into Stage 4's card.
+        -->
+        <marker id="aFB" viewBox="0 0 10 7" refX="10" refY="3.5"
+                markerWidth="7" markerHeight="5" orient="auto">
+          <polygon points="0 0,10 3.5,0 7" fill="#334466"/>
+        </marker>
+      </defs>
+      <!--
+        Arc: starts at Stage 6 top (x=1060,y=2), curves deep below the pipeline,
+        ends at Stage 4 top-centre (x=720,y=2).
+        Control points chosen so the tangent at x=720 is VERTICAL (straight up).
+      -->
+      <path d="M 1060,2 C 1060,80 720,80 720,2"
+        fill="none" stroke="#1e3060" stroke-width="2" stroke-dasharray="8 5"
+        marker-end="url(#aFB)">
+        <animate attributeName="stroke-dashoffset" from="0" to="-26" dur="2.8s" repeatCount="indefinite"/>
+      </path>
+      <circle r="3.5" fill="#3b5299" opacity="0.7">
+        <animateMotion dur="2.8s" repeatCount="indefinite"
+          path="M 1060,2 C 1060,80 720,80 720,2"/>
+        <animate attributeName="opacity" values="0;0.8;0" dur="2.8s" repeatCount="indefinite"/>
+      </circle>
+      <!-- Label — centred between Stage 4 endpoint and arc midpoint -->
+      <rect x="698" y="63" width="380" height="20" rx="4" fill="#0a0e1a" stroke="#1a2540"/>
+      <text x="888" y="77" text-anchor="middle" font-size="9" fill="#3a5080"
+        font-family="Segoe UI,system-ui,sans-serif" letter-spacing="0.3">
+        SAC trains Critics &amp; Actor → updated weights → Neural Encoder
+      </text>
+    </svg>
+  </div>
+
+</div><!-- .flow-container -->
+</div><!-- .pipeline-scroll -->
+
+<!-- ════════════════ EVALUATION & TRAINING ════════════════ -->
+<section class="eval-section">
+  <div class="eval-header">Evaluation Framework — Walk-Forward Validation</div>
+  <div class="eval-grid">
+
+    <div class="eval-card">
+      <div class="eval-card-label">8 Rolling-Window Walk-Forward Folds</div>
+      <div class="fold-diagram">
+        <svg viewBox="0 0 820 220" width="100%" style="display:block;min-height:220px;">
+          <defs>
+            <pattern id="embargo-hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+              <line x1="0" y1="0" x2="0" y2="6" stroke="#f59e0b44" stroke-width="2"/>
+            </pattern>
+          </defs>
+          <text x="8" y="20" font-size="9" fill="#3a4a6a" font-weight="700" font-family="Segoe UI,system-ui,sans-serif">FOLD</text>
+          <text x="8" y="32" font-size="8" fill="#2a3a5a" font-family="Segoe UI,system-ui,sans-serif">IS = In-Sample (5–6yr rolling)  OOS = Out-of-Sample (2yr)</text>
+          <line x1="70" y1="207" x2="810" y2="207" stroke="#1a2540" stroke-width="1"/>
+          <text x="70"  y="215" font-size="8" fill="#2a3a5a" text-anchor="middle" font-family="Segoe UI,system-ui,sans-serif">2004</text>
+          <text x="108" y="215" font-size="8" fill="#2a3a5a" text-anchor="middle" font-family="Segoe UI,system-ui,sans-serif">2006</text>
+          <text x="146" y="215" font-size="8" fill="#2a3a5a" text-anchor="middle" font-family="Segoe UI,system-ui,sans-serif">2008</text>
+          <text x="184" y="215" font-size="8" fill="#2a3a5a" text-anchor="middle" font-family="Segoe UI,system-ui,sans-serif">2010</text>
+          <text x="222" y="215" font-size="8" fill="#2a3a5a" text-anchor="middle" font-family="Segoe UI,system-ui,sans-serif">2012</text>
+          <text x="260" y="215" font-size="8" fill="#2a3a5a" text-anchor="middle" font-family="Segoe UI,system-ui,sans-serif">2014</text>
+          <text x="298" y="215" font-size="8" fill="#2a3a5a" text-anchor="middle" font-family="Segoe UI,system-ui,sans-serif">2016</text>
+          <text x="336" y="215" font-size="8" fill="#2a3a5a" text-anchor="middle" font-family="Segoe UI,system-ui,sans-serif">2018</text>
+          <text x="374" y="215" font-size="8" fill="#2a3a5a" text-anchor="middle" font-family="Segoe UI,system-ui,sans-serif">2020</text>
+          <text x="412" y="215" font-size="8" fill="#2a3a5a" text-anchor="middle" font-family="Segoe UI,system-ui,sans-serif">2022</text>
+          <text x="450" y="215" font-size="8" fill="#2a3a5a" text-anchor="middle" font-family="Segoe UI,system-ui,sans-serif">2024</text>
+          <!-- F1: IS 2004–2009 (6yr=114px, x=70→184), embargo, OOS 2010–2011 (2yr=38px, x=189→227) -->
+          <text x="8" y="51" font-size="9" fill="#3a5a8a" font-family="monospace">F1</text>
+          <rect x="70" y="40" width="114" height="14" fill="#3b82f622" rx="2"/>
+          <text x="127" y="51" font-size="7" fill="#3b82f6" text-anchor="middle" font-family="Segoe UI,system-ui,sans-serif">IS 2005–2009</text>
+          <rect x="184" y="40" width="5" height="14" fill="url(#embargo-hatch)" rx="1"/>
+          <rect x="189" y="40" width="38" height="14" fill="#ef444433" rx="2"/>
+          <text x="208" y="38" font-size="6" fill="#ef4444" text-anchor="middle" font-family="Segoe UI,system-ui,sans-serif">OOS 2010–11</text>
+          <!-- F2: IS 2006–2011 (6yr=114px, x=108→222), embargo, OOS 2012–2013 (2yr=38px, x=227→265) -->
+          <text x="8" y="69" font-size="9" fill="#3a5a8a" font-family="monospace">F2</text>
+          <rect x="108" y="58" width="114" height="14" fill="#3b82f622" rx="2"/>
+          <text x="165" y="69" font-size="7" fill="#3b82f6" text-anchor="middle" font-family="Segoe UI,system-ui,sans-serif">IS 2006–2011</text>
+          <rect x="222" y="58" width="5" height="14" fill="url(#embargo-hatch)" rx="1"/>
+          <rect x="227" y="58" width="38" height="14" fill="#ef444433" rx="2"/>
+          <text x="246" y="56" font-size="6" fill="#ef4444" text-anchor="middle" font-family="Segoe UI,system-ui,sans-serif">OOS 2012–13</text>
+          <!-- F3: IS 2008–2013 (6yr=114px, x=146→260), embargo, OOS 2014–2015 (2yr=38px, x=265→303) -->
+          <text x="8" y="87" font-size="9" fill="#3a5a8a" font-family="monospace">F3</text>
+          <rect x="146" y="76" width="114" height="14" fill="#3b82f622" rx="2"/>
+          <text x="203" y="87" font-size="7" fill="#3b82f6" text-anchor="middle" font-family="Segoe UI,system-ui,sans-serif">IS 2008–2013</text>
+          <rect x="260" y="76" width="5" height="14" fill="url(#embargo-hatch)" rx="1"/>
+          <rect x="265" y="76" width="38" height="14" fill="#ef444433" rx="2"/>
+          <text x="284" y="74" font-size="6" fill="#ef4444" text-anchor="middle" font-family="Segoe UI,system-ui,sans-serif">OOS 2014–15</text>
+          <!-- F4: IS 2010–2015 (6yr=114px, x=184→298), embargo, OOS 2016–2017 (2yr=38px, x=303→341) -->
+          <text x="8" y="105" font-size="9" fill="#3a5a8a" font-family="monospace">F4</text>
+          <rect x="184" y="94" width="114" height="14" fill="#3b82f622" rx="2"/>
+          <text x="241" y="105" font-size="7" fill="#3b82f6" text-anchor="middle" font-family="Segoe UI,system-ui,sans-serif">IS 2010–2015</text>
+          <rect x="298" y="94" width="5" height="14" fill="url(#embargo-hatch)" rx="1"/>
+          <rect x="303" y="94" width="38" height="14" fill="#ef444433" rx="2"/>
+          <text x="322" y="92" font-size="6" fill="#ef4444" text-anchor="middle" font-family="Segoe UI,system-ui,sans-serif">OOS 2016–17</text>
+          <!-- F5: IS 2012–2017 (6yr=114px, x=222→336), embargo, OOS 2018–2019 (2yr=38px, x=341→379) -->
+          <text x="8" y="123" font-size="9" fill="#3a5a8a" font-family="monospace">F5</text>
+          <rect x="222" y="112" width="114" height="14" fill="#3b82f622" rx="2"/>
+          <text x="279" y="123" font-size="7" fill="#3b82f6" text-anchor="middle" font-family="Segoe UI,system-ui,sans-serif">IS 2012–2017</text>
+          <rect x="336" y="112" width="5" height="14" fill="url(#embargo-hatch)" rx="1"/>
+          <rect x="341" y="112" width="38" height="14" fill="#ef444433" rx="2"/>
+          <text x="360" y="110" font-size="6" fill="#ef4444" text-anchor="middle" font-family="Segoe UI,system-ui,sans-serif">OOS 2018–19</text>
+          <!-- F6: IS 2014–2019 (6yr=114px, x=260→374), embargo, OOS 2020–2021 (2yr=38px, x=379→417) -->
+          <text x="8" y="141" font-size="9" fill="#3a5a8a" font-family="monospace">F6</text>
+          <rect x="260" y="130" width="114" height="14" fill="#3b82f622" rx="2"/>
+          <text x="317" y="141" font-size="7" fill="#3b82f6" text-anchor="middle" font-family="Segoe UI,system-ui,sans-serif">IS 2014–2019</text>
+          <rect x="374" y="130" width="5" height="14" fill="url(#embargo-hatch)" rx="1"/>
+          <rect x="379" y="130" width="38" height="14" fill="#ef444433" rx="2"/>
+          <text x="398" y="128" font-size="6" fill="#ef4444" text-anchor="middle" font-family="Segoe UI,system-ui,sans-serif">OOS 2020–21</text>
+          <!-- F7: IS 2016–2021 (6yr=114px, x=298→412), embargo, OOS 2022–2023 (2yr=38px, x=417→455) -->
+          <text x="8" y="159" font-size="9" fill="#3a5a8a" font-family="monospace">F7</text>
+          <rect x="298" y="148" width="114" height="14" fill="#3b82f622" rx="2"/>
+          <text x="355" y="159" font-size="7" fill="#3b82f6" text-anchor="middle" font-family="Segoe UI,system-ui,sans-serif">IS 2016–2021</text>
+          <rect x="412" y="148" width="5" height="14" fill="url(#embargo-hatch)" rx="1"/>
+          <rect x="417" y="148" width="38" height="14" fill="#ef444433" rx="2"/>
+          <text x="436" y="146" font-size="6" fill="#ef4444" text-anchor="middle" font-family="Segoe UI,system-ui,sans-serif">OOS 2022–23</text>
+          <!-- F8: IS 2018–2023 (6yr=114px, x=336→450), embargo, OOS 2024→live (x=455) -->
+          <text x="8" y="177" font-size="9" fill="#3a5a8a" font-family="monospace">F8</text>
+          <rect x="336" y="166" width="114" height="14" fill="#3b82f622" rx="2"/>
+          <text x="393" y="177" font-size="7" fill="#3b82f6" text-anchor="middle" font-family="Segoe UI,system-ui,sans-serif">IS 2018–2023</text>
+          <rect x="450" y="166" width="5" height="14" fill="url(#embargo-hatch)" rx="1"/>
+          <rect x="455" y="166" width="60" height="14" fill="#ef444444" stroke="#ef4444" stroke-width="0.5" stroke-dasharray="3,2" rx="2"/>
+          <text x="485" y="164" font-size="6" fill="#ef4444" text-anchor="middle" font-family="Segoe UI,system-ui,sans-serif">OOS 2024→ (live)</text>
+          <!-- Legend -->
+          <rect x="560" y="58" width="12" height="10" fill="#3b82f622" rx="1"/>
+          <text x="576" y="68" font-size="8" fill="#5a7aaa" font-family="Segoe UI,system-ui,sans-serif">In-Sample (IS) training</text>
+          <rect x="560" y="74" width="12" height="10" fill="#ef444433" rx="1"/>
+          <text x="576" y="84" font-size="8" fill="#5a7aaa" font-family="Segoe UI,system-ui,sans-serif">Out-of-Sample (OOS) eval</text>
+          <rect x="560" y="90" width="12" height="10" fill="url(#embargo-hatch)" rx="1"/>
+          <text x="576" y="100" font-size="8" fill="#5a7aaa" font-family="Segoe UI,system-ui,sans-serif">4-week embargo (n_step=4)</text>
+        </svg>
+      </div>
+    </div>
+
+    <div class="eval-card">
+      <div class="eval-card-label">Training & Evaluation Design</div>
+      <div class="eval-facts">
+        <div class="eval-fact-row">
+          <span class="eval-fact-key">Folds</span>
+          <div><span class="eval-fact-val">8 rolling 6-year windows</span><span class="eval-fact-desc">Each fold trains on a fixed 6-year window (5yr for Fold 1) that slides forward by 2 years per step — F1: 2005–2009, F2: 2006–2011, …, F8: 2018–2023. The model is retrained from scratch each fold, testing generalization across distinct market eras.</span></div>
+        </div>
+        <div class="eval-fact-row">
+          <span class="eval-fact-key">Embargo</span>
+          <div><span class="eval-fact-val">4 weeks</span><span class="eval-fact-desc">Hard gap between train end and test start. Prevents n-step returns (n=4) from spanning the fold boundary and leaking future returns into training.</span></div>
+        </div>
+
+        <div class="eval-fact-row">
+          <span class="eval-fact-key">Primary OOS Metrics</span>
+          <div><span class="eval-fact-val">Excess CAGR, Sortino, Max Drawdown</span><span class="eval-fact-desc">Computed on concatenated OOS weeks across all folds. Block bootstrap CIs on cross-fold performance.</span></div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+</section>
+
+</div><!-- .main-wrap -->
+
+<!-- ════════════════ DEEP-DIVE PANEL ════════════════ -->
+<div class="deepdive" id="deepdive">
+  <div class="dd-nav">
+    <button class="dd-back" id="ddBack">← Back to Pipeline</button>
+    <div class="dd-nav-label" id="ddNavLabel">Data Pipeline</div>
+  </div>
+  <div id="ddContent"></div>
+</div>
+
+<!-- ════════════════ TOOLTIP ════════════════ -->
+<div class="tooltip" id="tooltip"></div>
+<div class="dd-svgtip" id="ddSvgTip"></div>
+
+<script>
+const STAGES = [
+  /* ── STAGE 0: Data Pipeline ── */
+  {
+    idx: 0, color: '#3b82f6', dimBg: 'rgba(59,130,246,0.08)',
+    label: 'Stage 1 — Data Pipeline', title: 'Data Pipeline',
+    sub: 'Raw market data ingestion, anti-leakage validation, and universe construction',
+    tooltip: {
+      title: 'Data Pipeline',
+      body: 'The system\'s front door: raw historical OHLCV bars and point-in-time Nasdaq-100 membership snapshots flow in; clean, validated data flows out. The as-of rule is the key anti-leakage mechanism — membership is determined using only snapshots with effective_date ≤ decision_date, so the model can never know in advance which stocks will join or leave the index. The tradability triple gate (NDX member + valid close on d_t + valid open on d_{t+1}) determines whether each asset slot carries a 1 or 0 in the mask vector.',
+    },
+    panel: {
+      summary: 'The Data Pipeline is the foundation the entire system rests on. It ingests two raw sources — daily adjusted price bars and point-in-time Nasdaq-100 membership snapshots — and produces a clean, time-indexed dataset that every downstream component depends on. Its most important job is strict anti-leakage enforcement: no future data is ever allowed to contaminate a past decision. Two design details set this apart from a naive implementation: the <strong>as-of rule</strong> (which membership snapshot to use on any given day) and the use of permanent <strong>security_ids</strong> rather than ticker symbols (which change when companies rebrand).',
+      design_note: {
+        title: 'Key Design Decision: Security IDs over Tickers',
+        body: 'All data is keyed by permanent security_id, not ticker symbol. Facebook became Meta, Google became Alphabet — ticker changes can cause data continuity breaks and subtle look-ahead leakage (if a ticker is reused by a different company). The security_id is stable across all corporate events. A static ticker alias table maps historical symbols to their permanent security_id.',
+      },
+      timeline_label: 'Weekly Decision–Execution Timeline',
+      timeline: [
+        { label: 'Close d<sub>t</sub>', desc: 'Decision date. Observation s_t formed. Agent outputs w_exec. NDX removals detected.' },
+        { label: 'Open d<sub>t+1</sub>', desc: 'Execution date. Trades fill at open price (including forced liquidations). Transaction costs applied.' },
+        { label: 'Close d<sub>t+1</sub>', desc: 'NAV marked. Reward r<sub>t</sub> computed. Next observation s_{t+1} begins forming.' },
+      ],
+      forced_liq_note: 'Forced liquidations are triggered by three conditions: (1) NDX removal (asset exits the index per the membership snapshot at d_t), (2) missing_L[i] ≥ 2 (≥2 missing trading days in the trailing 60-day window), or (3) streak_missing[i] ≥ 3 (3 consecutive missing trading days). The decision is made at close of d_t; execution happens at open of d_{t+1} at full transaction cost.',
+      inputs: [
+        { chip: 'daily_bars.parquet', chipColor: '#3b82f6', text: 'OHLCV price bars with split- and dividend-adjusted prices for all tracked securities. Indexed by (date, security_id).' },
+        { chip: 'ndx_membership.parquet', chipColor: '#3b82f6', text: 'Point-in-time NDX constituent lists with permanent security_id, ticker, GICS sector_code, and the snapshot\'s effective date.' },
+      ],
+      outputs: [
+        { chip: 'Validated bar arrays', chipColor: '#6ee7b7', text: 'Cleaned, t_idx-indexed adjusted price series per asset, keyed by integer t_idx to avoid calendar-edge bugs.' },
+        { chip: 'mask_t [K_max=110]', chipColor: '#6ee7b7', text: 'Binary tradability vector: 1 if the asset is in the Nasdaq-100, has a valid closing price on the decision date, AND a valid opening price on the execution date. Every downstream component uses this to ignore inactive slots.' },
+        { chip: 'active_ids_t [K_max=110]', chipColor: '#6ee7b7', text: 'Permanent security_id indices for each active asset slot. Inactive or padded slots carry sentinel value −1.' },
+      ],
+      why: 'Even one leaked future data point invalidates the entire training process. The as-of rule ensures the membership snapshot used on any decision date was actually published on or before that date, eliminating survivorship bias. The tradability triple gate is strict on purpose: if a stock has no valid open price on the execution day, you cannot execute a trade in it — so it should never receive a non-zero weight. Using permanent security_ids instead of tickers means corporate rebranding events do not break continuity or introduce look-ahead from name reuse.',
+      params: [
+        { key: 'K_max', val: '110', desc: 'Fixed tensor width for all asset dimensions. Sized to cover the full historical Nasdaq-100 membership range (up to ~108 at peak) with a small buffer.' },
+        { key: 'L', val: '60 days', desc: 'Observation lookback window. The first valid episode requires at least 60 prior trading days of bar data.' },
+        { key: 'As-of rule', val: 'backward-fill only', desc: 'Membership snapshot used is the most recent with effective_date ≤ decision_date. Forward interpolation is strictly prohibited.' },
+        { key: 'embargo_weeks', val: '4', desc: 'Hard gap between training and test folds (= n_step). Prevents n-step return labels from spanning the fold boundary.' },
+        { key: 'Forced liq triggers', val: 'NDX exit / missing_L≥2 / streak≥3', desc: 'Three conditions trigger a forced sell at next-open price with full transaction costs applied.' },
+      ],
+    },
+  },
+
+  /* ── STAGE 1: Feature Engineering ── */
+  {
+    idx: 1, color: '#8b5cf6', dimBg: 'rgba(139,92,246,0.08)',
+    label: 'Stage 2 — Feature Engineering', title: 'Feature Engineering',
+    sub: 'Transforming raw prices into 25 normalized signals per asset (17 time-series + 8 cross-sectional), plus the 20-dimensional global context vector g_t',
+    tooltip: {
+      title: 'Feature Engineering',
+      body: 'Raw stock prices are meaningless by themselves — context is everything. This stage computes 25 descriptive signals for every stock across two groups that feed the neural network (17 per-asset time-series signals and 8 cross-sectional signals) plus a 20-dimensional global context vector g_t. The time-series signals cover things like weekly and monthly returns, price volatility, momentum, RSI, and Bollinger band position. The cross-sectional signals tell the agent how each stock ranks relative to all other Nasdaq-100 stocks right now. The global context (g_t) captures macro conditions, portfolio health, and QQQ benchmark performance. All signals are normalized so that recent history can never leak into past calculations.',
+    },
+    panel: {
+      summary: 'The Feature Engine transforms raw adjusted prices into a rich, normalized signal library the neural network can learn from. Think of it as translating raw stock data into a language the AI can reason about. Features are organized into four distinct groups: 17 per-asset time-series signals that capture each stock\'s own momentum, volatility, and trend characteristics; 8 cross-sectional signals that show how each stock compares to its Nasdaq-100 peers right now; 8 portfolio-state scalars tracking the agent\'s current holdings and recent performance; and 9 macro/broadcast signals capturing the broader economic environment (plus 3 QQQ benchmark metrics). The first two groups form the per-asset tensor x_t [L=60, K_max=110, F=25]; the latter two form the 20-dimensional global context vector g_t.',
+      design_note: {
+        title: 'Key Design Decision: Causal Normalization',
+        body: 'All normalization statistics (rolling mean, rolling std) are computed using only data available up to week t — no future data is ever used. This is non-trivial: scikit-learn\'s StandardScaler computes statistics over the entire dataset, which would constitute leakage. The rolling 52-week causal z-score ensures that feature statistics at inference time exactly match what was seen during training. Cross-sectional normalization (ranking within active universe) makes signals regime-invariant: a stock\'s momentum means the same thing in 2001 as in 2021.',
+      },
+      feature_groups: [
+        {
+          title: 'Per-Asset Time-Series — 17 signals (→ x_t)', color: '#8b5cf6',
+          items: ['open', 'close', 'volume', 'log_ret', 'ret_1w', 'ret_4w', 'ret_13w', 'vol_1w', 'vol_4w', 'vol_52w', 'volume_z_4w', 'beta_26w_mkt', 'rel_strength_4w', 'vol_ratio_1w_4w', 'RSI_14', 'bollinger_%b', 'bollinger_bw']
+        },
+        {
+          title: 'Cross-Sectional — 8 signals (→ x_t)', color: '#06b6d4',
+          items: ['ret_rank_4w', 'ret_z_4w', 'ret_z_12w', 'vol_z_4w', 'volume_z_cs_4w', 'ret_z_4w_sector', 'vol_z_4w_sector', 'momentum_sector_residual']
+        },
+        {
+          title: 'Portfolio State — 8 scalars (→ g_t)', color: '#10b981',
+          items: ['NAV drawdown from peak', 'rolling portfolio vol (13w)', 'rolling turnover rate', 'excess return vs QQQ (4w)', 'portfolio concentration (HHI)', 'active position count', 'max single-name weight', 'portfolio market beta']
+        },
+        {
+          title: 'Macro/Broadcast — 9 signals + 3 benchmark (→ g_t)', color: '#f59e0b',
+          items: ['VIX', '10Y yield', '3M yield', 'yield spread (10Y-3M)', 'oil (CL=F)', 'gold (GC=F)', 'DXY', 'HYG (credit spread)', 'SPY return', '→ QQQ ret_1w (benchmark)', '→ QQQ vol_4w (benchmark)', '→ QQQ ret_12w (benchmark)']
+        },
+      ],
+      norm_steps: [
+        { num: '1', label: 'Per-Asset Causal Z-score', desc: '52-week rolling mean/std, computed from data ≤ t only' },
+        { num: '2', label: 'Cross-Sectional Norm', desc: 'Rank or z-score vs active universe at time t' },
+        { num: '3', label: 'Global Fixed-Scale Norm', desc: 'Standardize across all assets/time steps' },
+        { num: '4', label: 'Hard Clip', desc: 'Clip all values to [−4σ, +4σ] to limit outlier influence' },
+      ],
+      inputs: [
+        { chip: 'Validated price bars', chipColor: '#8b5cf6', text: 'Adjusted OHLCV for all active assets over the L=60-day lookback window. Adjusted close is the canonical price for all return calculations.' },
+        { chip: 'QQQ benchmark bars', chipColor: '#8b5cf6', text: 'QQQ weekly return, 4-week volatility, and 12-week return, packed into the global context g_t for benchmark-relative awareness.' },
+        { chip: 'Portfolio state', chipColor: '#8b5cf6', text: 'w_exec_{t-1} (last week\'s executed weights), current NAV drawdown from peak, rolling portfolio vol, recent turnover, rolling excess return vs QQQ.' },
+      ],
+      outputs: [
+        { chip: 'x_t [L=60, K_max=110, F=25]', chipColor: '#6ee7b7', text: 'Per-asset feature tensor. Float32. Zero-padded at inactive slots. This is the main input to the TCN encoder. Shape: 60 daily snapshots × 110 asset slots × 25 features.' },
+        { chip: 'g_t [D_global = 20]', chipColor: '#6ee7b7', text: 'Global context vector: 20-dimensional concatenation of 8 portfolio-state scalars + 3 QQQ benchmark metrics + 9 macro signals. Broadcast additively into every per-asset representation after the TCN encoder.' },
+      ],
+      why: 'The quality of features determines the ceiling on what the model can possibly learn. Cross-sectional normalization makes signals regime-invariant: a stock\'s momentum means the same thing in 2001 as in 2021. Causal rolling-window normalization ensures the model\'s feature statistics at inference time exactly match what was seen during training — any mismatch here would degrade out-of-sample performance. Separating per-asset features (x_t) from global context (g_t) is architecturally important: x_t feeds the TCN for temporal encoding, while g_t is injected after the TCN to broadcast macro signals to all assets simultaneously.',
+      params: [
+        { key: 'F', val: '25', desc: 'Features per asset per time step stacked into x_t: 17 per-asset time-series signals + 8 cross-sectional signals. K_max=110 asset slots.' },
+        { key: 'L', val: '60 days', desc: 'Lookback window. x_t[t] spans trailing 60 daily observations per asset slot.' },
+        { key: 'norm_window_weeks', val: '52', desc: 'Rolling window for causal per-asset normalization (running mean + std). Computed causally; no future statistics ever used.' },
+        { key: 'norm_clip_threshold', val: '±4σ', desc: 'After normalization, all features are hard-clipped to [−4, +4] to limit outlier influence on the network.' },
+        { key: 'g_t dimensionality', val: '20 dims', desc: 'Exactly 20: 8 portfolio-state scalars + 3 QQQ benchmark metrics (ret_1w, vol_4w, ret_12w) + 9 macro signals (VIX, yields, oil, gold, DXY, HYG, SPY).' },
+      ],
+    },
+  },
+
+  /* ── STAGE 2: Observation Space ── */
+  {
+    idx: 2, color: '#06b6d4', dimBg: 'rgba(6,182,212,0.07)',
+    label: 'Stage 3 — Observation Space', title: 'Observation Space',
+    sub: 'The complete, fixed-size state bundle the agent sees at each weekly decision point',
+    tooltip: {
+      title: 'Observation Space',
+      body: 'Think of this as the full dashboard the AI sees every Monday morning before deciding what to buy or sell. It\'s a structured bundle: a 3D tensor showing all 110 asset slots\' signals over the past 60 days, a global context vector with portfolio health and macro conditions, and a binary mask telling the agent which of the 102 slots contain real tradeable stocks this week. The mask is the single source of truth: every downstream computation uses it to completely ignore padded, inactive slots.',
+    },
+    panel: {
+      summary: 'The Observation Space formalizes exactly what the agent knows at each weekly decision point. It bundles three tensors into a canonical state s_t = (x_t, g_t, mask_t). Think of it as the complete dashboard the AI sees before making its Monday morning portfolio decision. The central design challenge is the variable universe problem: the Nasdaq-100 roster changes every week (stocks get added or removed), but neural networks trained in batches need every observation to be the same shape. Padding everything to K_max=110 slots solves this; the binary mask then tells the network which slots are real stocks and which are empty padding, propagating through every network module to ensure zero probability and zero gradient flow at inactive slots.',
+      design_note: {
+        title: 'Key Design Decision: Why Fixed K_max Tensors',
+        body: 'Neural networks in a training batch require all observations to have identical shapes. Since the Nasdaq-100 roster changes weekly (stock additions, removals, delistings), a naïve approach would need variable-length inputs — impossible with standard GPU batching. Padding everything to K_max=110 slots keeps tensor shapes constant across all time periods, batches, and cross-validation folds. The binary mask_t vector then tells every part of the network which of the 110 slots contain real stocks vs. empty padding, so inactive slots are silently ignored throughout the entire forward pass.',
+      },
+      tensor_spec: [
+        { name: 'x_t', shape: '[L=60, K_max=110, F=25]', color: '#06b6d4', desc: 'Per-asset time-series features; zero-padded at inactive slots. 60 daily snapshots × 110 asset slots × 25 features = 165,000 values.' },
+        { name: 'g_t', shape: '[D_global = 20]', color: '#06b6d4', desc: 'Global context vector: 8 portfolio-state scalars + 3 QQQ benchmark metrics + 9 macro signals. Broadcast additively to all asset representations after the TCN encoder.' },
+        { name: 'mask_t', shape: '[K_max=110]', color: '#06b6d4', desc: 'Binary tradability: 1.0=active NDX member with valid prices, 0.0=inactive or padded. Propagates to actor logits, attention keys, and critic pooling.' },
+        { name: 'active_ids_t', shape: '[K_max=110, int64]', color: '#06b6d4', desc: 'Permanent security_id per slot; −1 sentinel for inactive slots. Used for ticker (32-dim) and sector (8-dim) embedding lookups in Stage 4.' },
+      ],
+      action_steps: [
+        '1. Actor outputs raw logits [K_max] and log_std [K_max]',
+        '2. Inactive slots forced to logits = −∞ (guarantees zero softmax probability)',
+        '3. Logistic-Normal exploration noise injected (scale = exp(log_std))',
+        '4. Softmax applied → pre-projection weights w_pre (sums to 1.0)',
+        '5. log π<sub>pre</sub> computed from w_pre and the noise distribution (stored for SAC entropy)',
+        '6. ConstraintProjector enforces hard constraints → w<sub>exec</sub>',
+        '7. violations_t = ‖w_pre − w_exec‖₂ computed',
+        '8. w_exec is the actual trade order; log π<sub>pre</sub> used in SAC entropy term',
+      ],
+      inputs: [
+        { chip: 'x_t [60, 110, 25]', chipColor: '#06b6d4', text: 'Per-asset normalized feature tensor from Feature Engineering. Zero-padded at inactive slots.' },
+        { chip: 'g_t [D_global]', chipColor: '#06b6d4', text: 'Global context vector from Feature Engineering.' },
+        { chip: 'mask_t [K_max=110]', chipColor: '#06b6d4', text: 'Binary tradability vector from Data Pipeline. 1.0=tradeable, 0.0=inactive.' },
+      ],
+      outputs: [
+        { chip: 's<sub>t</sub> = (x<sub>t</sub>, g<sub>t</sub>, mask<sub>t</sub>)', chipColor: '#6ee7b7', text: 'The complete agent state. Consumed by the neural network\'s forward() pass.' },
+        { chip: 'active_ids_t [K_max]', chipColor: '#6ee7b7', text: 'Integer security_id indices. Used for ticker and sector embedding lookups.' },
+      ],
+      why: 'The mask is critical everywhere downstream. It forces actor logits for inactive slots to −∞ before softmax (guaranteeing zero portfolio allocation to stocks not in the index), masks keys and values in cross-asset attention so inactive assets contribute no signal to any stock, and controls which slots pool into the critic\'s global state summary. Without the mask, the zero-padded inactive slots would corrupt softmax probabilities, attention scores, and value estimates. The log π<sub>pre</sub> is computed on w_pre (before the ConstraintProjector) rather than w_exec because the projection is deterministic — it adds no randomness — so computing entropy on the projected output would be mathematically wrong for SAC\'s entropy term.',
+      params: [
+        { key: 'K_max', val: '110', desc: 'Fixed asset dimension. Sized to cover the full historical Nasdaq-100 membership range (up to ~108 at peak) with a buffer.' },
+        { key: 'L', val: '60 days', desc: 'Temporal depth of x_t. The observation covers the trailing 60 daily snapshots per asset.' },
+        { key: 'F', val: '25', desc: 'Feature channels per asset per time step within x_t: 17 time-series + 8 cross-sectional.' },
+        { key: 'mask_t dtype', val: 'float32', desc: '1.0 for tradeable assets, 0.0 for inactive. active_ids uses int64 with −1 sentinel.' },
+      ],
+    },
+  },
+
+  /* ── STAGE 3: Neural Network ── */
+  {
+    idx: 3, color: '#f59e0b', dimBg: 'rgba(245,158,11,0.07)',
+    label: 'Stage 4 — Neural Encoder', title: 'Neural Encoder',
+    sub: 'Shared TCN Encoder → g_t Additive Fusion → Cross-Asset Attention → per-asset vectors h[i] ∈ ℝ¹²⁸ (shared backbone for Actor and Critics)',
+    tooltip: {
+      title: 'Neural Network / Policy',
+      body: 'The AI\'s brain, built in three sequential stages. First, a shared Temporal Convolutional Network (TCN) processes each stock\'s 60-day history independently, collapsing it to a per-asset summary vector. The global context g_t is then additively fused into each per-asset representation: h<sub>0</sub>[i] = h<sub>TCN</sub>[i] + W<sub>g</sub>·g<sub>t</sub>. Then the Actor and each of the two Critics run their own independent cross-asset attention stack, letting every stock "listen" to every other stock from each head\'s own learned perspective. Keeping attention stacks separate means Actor and Critics can each discover different inter-stock relationships relevant to their objectives.',
+    },
+    panel: {
+      summary: `<div class="arch-diagram">
+  <div class="arch-row"><div class="arch-box arch-box-muted" style="min-width:300px">x<sub>t</sub> [60×110×25] &nbsp;|&nbsp; active_ids<sub>t</sub></div></div>
+  <div class="arch-row"><div class="arch-arrow">↓</div></div>
+  <div class="arch-row"><div class="arch-box arch-box-amber" style="min-width:300px">Ticker Emb (32d) + Sector Emb (8d) → concat → prepend to x<sub>t</sub></div></div>
+  <div class="arch-row"><div class="arch-arrow">↓</div></div>
+  <div class="arch-row"><div class="arch-box arch-box-amber" style="min-width:300px">Shared TCN Encoder — 5 dilated layers, D=128, SiLU</div></div>
+  <div class="arch-row"><div class="arch-arrow">↓</div></div>
+  <div class="arch-row"><div class="arch-box arch-box-amber" style="min-width:300px">+ W<sub>g</sub>·g<sub>t</sub> &nbsp;(additive global context broadcast)</div></div>
+  <div class="arch-row"><div class="arch-arrow" style="font-size:10px">↓ h<sub>0</sub>[i] for all active i</div></div>
+  <div class="arch-split-label">── SHARED ENCODER ↓ BRANCH SPLIT HERE ──</div>
+  <div class="arch-branch-row">
+    <div class="arch-branch">
+      <div class="arch-box arch-box-amber" style="width:100%">Actor Attention Stack<br><span style="font-size:9px;font-weight:400;color:#a08030">2× Pre-LN, 4 heads, sector bias</span></div>
+      <div class="arch-arrow">↓</div>
+      <div class="arch-box arch-box-amber" style="width:100%">Dual Pool → state_summary<br>+ per-asset repr h<sub>actor</sub></div>
+      <div class="arch-arrow">↓</div>
+      <div class="arch-box arch-box-amber" style="width:100%">Actor MLP [128, 128]</div>
+      <div class="arch-arrow">↓</div>
+      <div class="arch-box arch-box-amber" style="width:100%">logits → mask → softmax → w<sub>pre</sub></div>
+    </div>
+    <div style="display:flex;align-items:center;color:#1a2540;font-size:22px;padding-top:24px">|</div>
+    <div class="arch-branch">
+      <div class="arch-box arch-box-teal" style="width:100%">Q1 &amp; Q2 Attention Stacks<br><span style="font-size:9px;font-weight:400;color:#3a8090">2× Pre-LN, 4 heads — SEPARATE weights</span></div>
+      <div class="arch-arrow">↓</div>
+      <div class="arch-box arch-box-teal" style="width:100%">Dual Pool → state_summary<br>concat(state_summary, a<sub>pre</sub>)</div>
+      <div class="arch-arrow">↓</div>
+      <div class="arch-box arch-box-teal" style="width:100%">Critic MLP [256, 256]</div>
+      <div class="arch-arrow">↓</div>
+      <div class="arch-box arch-box-teal" style="width:100%">32 quantile estimates each (Q1, Q2)</div>
+    </div>
+  </div>
+</div>
+<div class="nn-subsection">
+  <div class="nn-subsection-header">Shared TCN Encoder</div>
+  <p style="font-size:11.5px;color:#8a9abb;line-height:1.65">The TCN (Temporal Convolutional Network) is a stack of 1D dilated causal convolutions that processes each asset's 60-day price feature history independently. "Dilated" means each successive layer skips positions with exponentially increasing gaps (dilations 1, 2, 4, 8, 16), letting the network see 63 days of history using small 3-wide kernels. TCN weights are shared across all 110 asset slots — processed in parallel as a batch — and shared between Actor and Critic branches. The result is one 128-dimensional summary vector per asset: h<sub>TCN</sub>[i] ∈ ℝ<sup>128</sup>.</p>
+</div>
+<div class="nn-subsection">
+  <div class="nn-subsection-header">Global Context Injection</div>
+  <p style="font-size:11.5px;color:#8a9abb;line-height:1.65">After the TCN, the global context vector g<sub>t</sub> (macro signals, portfolio state, benchmark) is broadcast additively to every active asset: h<sub>0</sub>[i] = h<sub>TCN</sub>[i] + W<sub>g</sub>·g<sub>t</sub>. This is additive (not concatenation) so the per-asset vector dimension stays constant at 128 across all branches. Inactive slots (where mask<sub>t</sub>[i] = 0) are zeroed out after injection.</p>
+</div>
+<div class="nn-subsection">
+  <div class="nn-subsection-header">Cross-Asset Attention Stacks</div>
+  <p style="font-size:11.5px;color:#8a9abb;line-height:1.65">Each attention stack is a 2-layer Pre-LayerNorm Transformer operating over all K_max asset slots. Unlike NLP attention, here each asset attends to every other asset — enabling cross-stock reasoning (sector correlations, factor exposures). A sector adjacency bias is added to attention logits: stocks in the same GICS sector receive a positive bias, encoding the prior that within-sector correlations are more informative. The Actor, Q1, and Q2 have fully independent attention weights because "which stocks to overweight" and "what is this portfolio worth" are fundamentally different questions.</p>
+</div>
+<div class="nn-subsection">
+  <div class="nn-subsection-header">Actor and Critic Heads</div>
+  <p style="font-size:11.5px;color:#8a9abb;line-height:1.65">After attention, dual pooling (mean-pool + attention-weighted pool over active slots) produces a state_summary vector. The Actor concatenates this with each per-asset output, then a small MLP [128, 128] outputs one scalar logit per asset; masked softmax converts these to w<sub>pre</sub>. The Twin Critics (Q1, Q2) each take concat(state_summary, a<sub>pre</sub>) through a larger MLP [256, 256] and output 32 quantile estimates of the full return distribution. Taking min(Q1, Q2) as the SAC Bellman target prevents overestimation bias.</p>
+</div>`,      design_note: {
+        title: 'Key Design Decision: Shared TCN vs Separate Encoders',
+        body: 'The TCN encoder is shared across the Actor and both Critics (same weights). This is a deliberate choice: temporal patterns in price data (momentum, mean-reversion, volatility clustering) are equally useful for both the policy and the value function. Sharing the encoder dramatically reduces parameter count and forces the representation to be informative for both objectives simultaneously. The three attention stacks that follow are NOT shared — the Actor needs to know "which stocks to overweight now," while the Critics need to know "what is the portfolio worth given this action." These are different questions requiring different attention patterns.',
+      },
+      branch_detail: {
+        actor_detail: 'Actor attention outputs per-asset representations h<sub>actor</sub>[i] ∈ ℝ<sup>D_attn=128</sup>. Dual pooling (mean-pool + attention-weighted pool over active slots) produces state_summary_actor ∈ ℝ<sup>D_pool=256</sup>. Each asset\'s input to the actor head is concat(h_actor[i], state_summary_actor) ∈ ℝ<sup>D_repr=384</sup>. Actor MLP [128, 128] maps D_repr → one scalar logit per asset slot.',
+        critic_detail: 'Each Critic Q takes concat(state_summary_Qk, a_pre) ∈ ℝ<sup>D_pool + K_max=110</sup> as input to its [256, 256] MLP. The state_summary comes from that critic\'s own attention stack (fully separate weights from actor). Output: N_q=32 quantile estimates of the full return distribution. QR-Huber (quantile regression Huber) loss used for distributional training.',
+        sector_bias: 'A sector adjacency bias is added to attention logits before softmax: assets in the same GICS sector receive a positive bias, creating a structured inductive prior that cross-sector correlations are less informative than within-sector correlations. This is a learned or fixed scalar applied to a binary sector co-membership matrix.',
+      },
+      inputs: [
+        { chip: 's<sub>t</sub> = (x<sub>t</sub>, g<sub>t</sub>, mask<sub>t</sub>)', chipColor: '#f59e0b', text: 'Full observation state. x<sub>t</sub> [60, 110, 25], g<sub>t</sub> [20], mask<sub>t</sub> [110].' },
+        { chip: 'active_ids_t [K_max, int64]', chipColor: '#f59e0b', text: 'Security IDs for ticker (32-dim) and sector (8-dim) embedding lookups. Embeddings concatenated with x_t BEFORE TCN input.' },
+      ],
+      outputs: [
+        { chip: 'w_pre [K_max=110]', chipColor: '#6ee7b7', text: 'Pre-projection portfolio weights (masked softmax output). Sums to 1.0; inactive slots = 0.' },
+        { chip: 'log π<sub>pre</sub> [1]', chipColor: '#6ee7b7', text: 'Log-probability of w_pre. Used in SAC entropy computation. Computed before projection (projection adds no entropy).' },
+        { chip: 'q1_quantiles / q2_quantiles [32]', chipColor: '#6ee7b7', text: 'Distributional Q-values: 32 quantile estimates per critic. min(Q1, Q2) used as conservative SAC target.' },
+      ],
+      why: 'The TCN is preferred over LSTMs because it runs fully in parallel (no sequential bottleneck), trains more stably, and has a predictable receptive field you can calculate exactly. With 5 dilation levels (1, 2, 4, 8, 16) and kernel_size=3, the effective receptive field is 1 + (3−1)×(1+2+4+8+16) = 63 time steps — comfortably covering the full L=60-day lookback window. Additive g_t injection (versus concatenation) keeps the per-asset vector dimension constant across all branches, reducing parameter count and keeping the architecture clean. The sector adjacency bias gives the model a structured head start: stocks in the same GICS sector get a positive attention bonus, encoding the prior that same-sector stocks tend to move together. Distributional critics (32 quantile estimates per critic) give the agent a full picture of return uncertainty, not just the expected value — critical for a risk-aware portfolio objective.',
+      params: [
+        { key: 'tcn_levels', val: '5', desc: 'Dilations 1,2,4,8,16. Receptive field = 1 + (3−1)×31 = 63 steps, covering L=60.' },
+        { key: 'tcn_channels (D_tcn)', val: '128', desc: 'Hidden channels in each TCN layer. Per-asset output is D_tcn=128. SiLU activations.' },
+        { key: 'g_t injection', val: 'h<sub>0</sub>[i] = h<sub>TCN</sub>[i] + W<sub>g</sub>·g<sub>t</sub>', desc: 'Additive broadcast — NOT concatenation. Applied after TCN, before all three attention stacks.' },
+        { key: 'attn_num_heads', val: '4', desc: 'd_model=128, d_ff=256, 2 stacked Pre-LN transformer layers, dropout=0.05. Sector adjacency bias added to logits.' },
+        { key: 'D_pool / D_repr', val: '256 / 384', desc: 'D_pool = 2×D_attn (dual pooling); D_repr = D_attn + D_pool = 384.' },
+        { key: 'actor_hidden_dims', val: '[128, 128]', desc: 'Two-layer Actor MLP mapping D_repr → logit per asset.' },
+        { key: 'critic_hidden_dims', val: '[256, 256]', desc: 'Two-layer Critic MLP (separate from actor). Input: concat(state_summary, a<sub>pre</sub>) ∈ ℝ<sup>D_pool + K_max</sup>.' },
+        { key: 'n_quantiles', val: '32', desc: 'Distributional critic quantile levels. QR-Huber loss for distributional training.' },
+        { key: 'ticker_emb / sector_emb', val: '32 / 8 dims', desc: 'Concatenated with x_t features BEFORE TCN input. Weight decay not applied to embedding parameters.' },
+      ],
+    },
+  },
+
+  /* ── STAGE 4: Constraint Projection ── */
+  {
+    idx: 4, color: '#10b981', dimBg: 'rgba(16,185,129,0.07)',
+    label: 'Stage 5 — Actor → Decision', title: 'Actor → Decision',
+    sub: 'Actor head (logit → masked softmax → w_pre) + Constraint Projector (w_pre → w_exec): the complete decision chain from neural output to legal, tradeable portfolio weights',
+    tooltip: {
+      title: 'Action & Constraint Projection',
+      body: 'Stage 5 is the complete decision chain: the Actor head transforms the per-asset vectors from Stage 4 into a portfolio weight proposal (w_pre), then the ConstraintProjector enforces four hard rules before anything is submitted to the market. The Actor uses a masked softmax — inactive stocks are forced to zero probability — and injects Logistic-Normal exploration noise during training. The projector is deterministic math (Dykstra\'s alternating projections), not a learned network, and is differentiable so gradients still flow back to train the Actor. Final output: w_exec, a fully legal, constraint-satisfying portfolio that is guaranteed to be long-only, fully invested, ≤20% per stock, and ≤50% per sector.',
+    },
+    panel: {
+      summary: `<div class="wpw-grid">
+  <div class="wpw-box">
+    <div class="wpw-box-title">w<sub>pre</sub> — Pre-Projection Weights</div>
+    <div class="wpw-box-content">The raw portfolio weight vector output by the Actor's masked softmax. It always sums to 1.0 and has no weight on inactive assets. However, it may violate real-world investment constraints (e.g. a single stock at 40% violates the 20% per-name cap). Think of w<sub>pre</sub> as the AI's unconstrained preference — what it would allocate if there were no investment rules. It is <strong style="color:#f59e0b">never submitted to the market</strong>.</div>
+  </div>
+  <div class="wpw-box">
+    <div class="wpw-box-title">w<sub>exec</sub> — Executed Weights</div>
+    <div class="wpw-box-content">The portfolio weight vector that is actually traded. It is the output of the deterministic ConstraintProjector applied to w<sub>pre</sub>. It satisfies <strong style="color:#10b981">all hard constraints</strong> at every step by mathematical guarantee. It is the weight vector submitted to the broker, used for NAV computation, and stored in the replay buffer.</div>
+  </div>
+</div>
+<div class="wpw-why">
+  <strong style="color:#8a9abb">Why the distinction matters:</strong> The log-probability log π<sub>pre</sub> used in SAC's entropy term is computed on w<sub>pre</sub>, not w<sub>exec</sub>. This is because the projection is a deterministic transformation that adds no randomness — computing entropy on w<sub>exec</sub> would understate the policy's true stochasticity. The gap violations<sub>t</sub> = ‖w<sub>pre</sub> − w<sub>exec</sub>‖₂ measures how hard the projector had to work and is penalized in the reward to encourage the actor to eventually produce naturally feasible weights.
+</div>
+<p style="font-size:12px;color:#8a9abb;line-height:1.72;margin-top:10px">The ConstraintProjector is a deterministic (non-learned) operation that maps any pre-projection weight vector w<sub>pre</sub> to a feasible executed vector w<sub>exec</sub>. It solves a constrained Euclidean projection problem: find the point in the feasible set F that minimizes ‖w − w<sub>pre</sub>‖₂. The feasible set is the intersection of: the probability simplex (Σw=1, w≥0), the long-only box (w_i≥0), the per-name cap box (w_i≤0.20 for active assets), and the sector cap polytope (Σ_sector w_i ≤ 0.50). Because the projection is differentiable with respect to w<sub>pre</sub>, gradients flow back through it during training.</p>`,      design_note: {
+        title: 'Key Design Decision: Deterministic Projection vs Reward Penalties',
+        body: 'An alternative design would be to remove the ConstraintProjector and instead penalize constraint violations heavily in the reward. This has a fatal flaw: feasibility is not guaranteed — especially early in training, the actor produces near-random weights, and the agent could generate infeasible portfolios in live trading. The deterministic projection guarantees feasibility at every single step, even in the very first episode. The differentiability of the projection means the actor still receives a gradient signal and eventually learns to produce pre-projection weights that are already close to feasible, minimizing the economic drag from projection distortion (monitored via violations<sub>t</sub>).',
+      },
+      algorithm_steps: [
+        { step: '1. Zero inactive', desc: 'Set w<sub>pre</sub>[i] = 0 for all i where mask<sub>t</sub>[i] = 0. This is a hard requirement before any projection.' },
+        { step: '2. Simplex projection', desc: 'Project onto the probability simplex: min ‖w − w<sub>pre</sub>‖₂ s.t. Σw=1, w≥0. Efficient O(K log K) algorithm.' },
+        { step: '3. Per-name cap clip', desc: 'Iteratively clip any weight exceeding 20% and redistribute the excess to uncapped assets. Repeat until all per-name caps are satisfied.' },
+        { step: '4. Sector cap clip', desc: 'For any sector with Σw_i > 50%, proportionally scale down that sector\'s weights and redistribute the excess. Repeat until all sector caps are satisfied.' },
+        { step: '5. Re-normalize', desc: 'After capping, re-normalize so weights sum to exactly 1.0. If the feasibility set is empty, fall back to equal-weight among active assets.' },
+        { step: '6. Compute violations_t', desc: 'violations<sub>t</sub> = ‖w<sub>pre</sub> − w<sub>exec</sub>‖₂. This scalar measures how aggressively the projector had to intervene.' },
+      ],
+      inputs: [
+        { chip: 'w_pre [K_max=110]', chipColor: '#10b981', text: 'Pre-projection weights: output of masked softmax on actor logits after Logistic-Normal noise injection. Sums to 1; inactive slots = 0.' },
+        { chip: 'mask_t [K_max=110]', chipColor: '#10b981', text: 'Tradability mask. Non-member and inactive asset slots are hard-zeroed before projection begins.' },
+        { chip: 'sector_codes [K_max=110]', chipColor: '#10b981', text: 'GICS sector assignment per slot. Used to sum per-sector weights and enforce the 50% sector cap iteratively.' },
+      ],
+      outputs: [
+        { chip: 'w_exec [K_max=110]', chipColor: '#6ee7b7', text: 'Post-projection executed weights. Satisfies all four hard constraints (long-only, fully invested, ≤20% per name, ≤50% per sector). This is the actual portfolio submitted to the market.' },
+        { chip: 'log π<sub>pre</sub> [1]', chipColor: '#6ee7b7', text: 'Log-probability of w_pre under the pre-projection stochastic policy. Stored in replay buffer for SAC entropy computation. Computed on w<sub>pre</sub>, not w<sub>exec</sub>.' },
+        { chip: 'violations_t = ‖w_pre − w_exec‖₂', chipColor: '#6ee7b7', text: 'L2 distance between pre- and post-projection weights. Signals how far the projector had to move the weights. Feeds directly into reward Term 5 via λ<sub>cv</sub>.' },
+      ],
+      why: 'Enforcing constraints via deterministic projection (instead of soft reward penalties) guarantees the portfolio is always legally compliant, even in the very first training episode when the actor is producing essentially random weights. The differentiability of the projection is equally critical: constraint enforcement does not block gradient flow back to the actor, so the AI is incentivized to gradually learn to propose weights that naturally satisfy the rules — minimizing the economic drag from projection correction over time. The fallback to equal-weight across active stocks ensures the system never crashes even if the constraint set temporarily has no feasible solution.',
+      params: [
+        { key: 'per_name_cap', val: '0.20 (20%)', desc: 'Maximum weight for any single active asset. Enforced by iterative clipping within the Euclidean projection.' },
+        { key: 'sector_cap', val: '0.50 (50%)', desc: 'Maximum total portfolio weight allocated to any single GICS sector. Enforced after per-name caps.' },
+        { key: 'Long-only', val: 'w_exec_i ≥ 0', desc: 'No short positions under any circumstances. Projection enforces non-negativity.' },
+        { key: 'Full investment', val: 'Σ w_exec = 1.0', desc: 'Must be 100% invested (no cash). Fallback: equal-weight across active assets if feasibility set is empty.' },
+        { key: 'violations_t', val: '‖w_pre − w_exec‖₂', desc: 'L2 distance: pre- vs post-projection weights. Enters reward via λ<sub>cv</sub>=1.0. Incentivizes actor to learn naturally feasible proposals.' },
+        { key: 'log_std range', val: '[−5, +1]', desc: 'Logistic-Normal exploration noise scale. Clamped to this range to prevent degenerate distributions.' },
+      ],
+    },
+  },
+
+  /* ── STAGE 5: Environment & Reward ── */
+  {
+    idx: 5, color: '#ef4444', dimBg: 'rgba(239,68,68,0.07)',
+    label: 'Stage 6 — Execution & SAC Loop', title: 'Execution & SAC Loop',
+    sub: 'Trade execution → NAV → 5-term reward → Replay Buffer → SAC trains Twin Critics + Actor → updated weights fed back to Stage 4 (Neural Encoder)',
+    tooltip: {
+      title: 'Environment & Reward',
+      body: 'This is where decisions meet reality AND where the model learns. First, the execution side: w_exec trades fill at next-morning open prices with four-component transaction costs (commission, bid-ask spread, square-root market impact, overnight gap risk) all scaled by VIX multiplier M(i,t)=max(1.0, VIX_t/20). The 5-term reward r_t is computed and the transition stored in the 800-capacity replay buffer. Then the learning side: the SAC Trainer samples 64-transition batches and runs 20 gradient updates per step — first updating the Twin Critics (using Bellman targets from the distributional Q-networks), then updating the Actor (via critic gradient). These updated weights are applied back at Stage 4 (Neural Encoder) on the very next forward pass.',
+    },
+    panel: {
+      summary: 'Stage 6 is where two things happen every week: <strong style="color:#ef4444">execution</strong> and <strong style="color:#ef4444">learning</strong>. On the execution side, the projected weights translate into actual trades — filled at next-morning open prices — and a five-component reward score is computed to tell the model how well it performed. That reward, along with the full transition record, gets stored in the replay buffer. On the learning side, the SAC Trainer samples from that buffer and runs 20 gradient updates per step, sharpening both the Twin Critics (which evaluate decisions) and the Actor (which makes them). Those refined weights flow back to Stage 4 on the very next forward pass, closing the loop.',
+      design_note: {
+        title: 'Key Design Decision: Why Costs Are Double-Counted in the Reward',
+        body: 'Transaction costs enter the reward twice: implicitly through r<sub>port,t</sub> (net return after costs, reducing Term 1) and explicitly through λ<sub>cost</sub> × cost<sub>t</sub> (Term 4). This is intentional reward shaping. The implicit signal teaches the agent that high turnover degrades long-run performance — but this signal is weak relative to weekly return variance (costs are ~5–10 bps vs ±100–200 bps weekly swings) and has poor credit assignment (the agent cannot reliably attribute a lower return to trading costs vs. poor stock selection). The explicit λ_cost term creates a labeled, direct gradient signal attributing cost to the specific step it was incurred. Calibration risk: if λ<sub>cost</sub> is too high, the agent develops pathological trading aversion. Monitor cost_fraction_of_gross_pnl during training.',
+      },
+      timeline: [
+        { label: 'Close d<sub>t</sub>', desc: 'Agent observes s<sub>t</sub>. Generates w<sub>exec</sub> via neural net + projector. NDX removals detected → forced liquidations scheduled.' },
+        { label: 'Open d<sub>t+1</sub>', desc: 'Trades execute at open price. Forced liquidations execute here too. Transaction costs applied immediately.' },
+        { label: 'Close d<sub>t+1</sub>', desc: 'NAV marked at close price. Cost<sub>t</sub> computed. e<sub>t</sub> = r<sub>port,t</sub> − r<sub>QQQ,t</sub>. Reward r<sub>t</sub> computed. s<sub>t+1</sub> formed.' },
+      ],
+      reward_formula: 'r_t = (e_t / σ_mkt,t) − λ_slow·σ_t − λ_tail·max(0, −e_t/σ_mkt,t)² − λ_cost·cost_t − λ_cv·violations_t',
+      reward_clip: 'Clipped to [−5, +5] after all terms are summed.',
+      reward_terms: [
+        { formula: 'e<sub>t</sub> / σ<sub>mkt,t</sub>', lambda: 'Primary', desc: 'Market-adjusted excess return. e<sub>t</sub> = r<sub>port,t</sub> − r<sub>QQQ,t</sub>; divided by rolling 13-week QQQ vol to make the reward scale-invariant across calm and volatile regimes. The primary optimization target.' },
+        { formula: '−λ<sub>slow</sub> · σ<sub>t</sub>', lambda: 'λ_slow = 0.75', desc: 'Slow volatility penalty. Penalizes the portfolio\'s own 52-week rolling volatility. Discourages strategies that generate alpha by taking on excessive absolute risk.' },
+        { formula: '−λ<sub>tail</sub> · max(0, −e<sub>t</sub>/σ<sub>mkt,t</sub>)²', lambda: 'λ_tail = 0.40', desc: 'Asymmetric tail penalty. Only fires when portfolio underperforms QQQ. Grows quadratically with magnitude of underperformance. Mimics the Sortino ratio\'s asymmetric downside focus.' },
+        { formula: '−λ<sub>cost</sub> · cost<sub>t</sub>', lambda: 'λ_cost = 1.0', desc: 'Explicit cost penalty. Transaction costs are penalized here AND reduce r_port_t in Term 1. The explicit term creates a direct, labeled gradient to reduce turnover beyond the weak implicit signal.' },
+        { formula: '−λ<sub>cv</sub> · violations<sub>t</sub>', lambda: 'λ_cv = 1.0', desc: 'Constraint violation penalty. violations<sub>t</sub> = ‖w<sub>pre</sub> − w<sub>exec</sub>‖₂. Incentivizes the actor to produce naturally feasible weight proposals, reducing the economic drag of projection correction over time.' },
+      ],
+      cost_model: [
+        { component: 'Commission', formula: '1.0 bps flat per trade dollar', desc: 'Applied to all trade volume. Simplest component.' },
+        { component: 'Bid-Ask Spread', formula: 'ADV-relative scaling × M(i,t)', desc: 'Half-spread scaled by relative illiquidity (asset ADV / cross-sectional median ADV). Wider for small-cap NDX names.' },
+        { component: 'Market Impact', formula: 'sqrt-model (Almgren-Chriss) × M(i,t)', desc: 'Square-root of participation rate × volatility. Grows with trade size relative to ADV. Both spread and impact scaled by M(i,t).' },
+        { component: 'Overnight Gap Risk', formula: '1.5 × σ_gap(i,t)', desc: 'Captures overnight price uncertainty for positions held through the close→open gap. σ_gap is asset-specific overnight volatility.' },
+        { component: 'VIX Multiplier M(i,t)', formula: 'max(1.0, VIX_t / 20)', desc: 'Scales spread and impact costs upward in high-volatility regimes. At VIX=40 (extreme stress), spread and impact are 2× their base levels. Reflects real-world liquidity deterioration during crises.' },
+      ],
+      inputs: [
+        { chip: 'w<sub>exec</sub> [K_max=110]', chipColor: '#ef4444', text: 'Feasible executed portfolio weights from ConstraintProjector. Drives the trade list: Δw = w<sub>exec,t</sub> − w<sub>exec,t−1</sub>.' },
+        { chip: 'Market prices (open + close)', chipColor: '#ef4444', text: 'Trades fill at adjusted open of d<sub>t+1</sub>. NAV is marked at adjusted close of d<sub>t+1</sub> (strictly close-to-close accounting).' },
+        { chip: 'QQQ weekly return r_QQQ,t', chipColor: '#ef4444', text: 'Benchmark return for computing excess return e_t and the market volatility normalization σ_mkt,t (13-week rolling QQQ vol).' },
+      ],
+      outputs: [
+        { chip: 'Reward r_t', chipColor: '#6ee7b7', text: '5-term scalar: (e_t/σ_mkt) − λ_slow·σ_t − λ_tail·max(0,−e_t/σ_mkt)² − λ_cost·costs_t − λ_cv·violations_t. Clipped to ±5.' },
+        { chip: 'NAV_{t+1}', chipColor: '#6ee7b7', text: 'Updated portfolio value: NAV_t × (1 + r_port,t) × (1 − cost_t). Normalized to 1.0 at each episode start.' },
+        { chip: 'Replay transition', chipColor: '#6ee7b7', text: 'Tuple: (t_idx, mask_t, a_pre, log_π_pre, w_exec, R_n, γ^n, done_n). Capacity: 800 transitions. x_t/g_t reconstructed on demand from t_idx.' },
+      ],
+      why: 'The reward function\'s design is the single most consequential modeling choice. Dividing excess return by σ_mkt,t makes the reward scale-invariant: the agent does not learn to "do nothing in low-vol and trade frantically in high-vol." The asymmetric tail penalty (Term 3) mirrors the Sortino ratio\'s focus on downside risk — it only fires when the portfolio underperforms QQQ. n-step returns (n=4) accumulate 4 weeks of discounted rewards before the TD bootstrap, providing longer credit assignment horizons than 1-step TD. The high replay ratio (20 gradient updates per step) combined with the small replay buffer (800 transitions) keeps training data fresh and is key to sample efficiency.',
+      params: [
+        { key: 'n_step', val: '4', desc: 'Multi-step return. R_n accumulates 4 weeks of discounted rewards before TD bootstrap at the far end.' },
+        { key: 'gamma (γ)', val: '0.975', desc: 'Discount factor. γ^4 ≈ 0.905 for the 4-step return, keeping long-horizon incentives strong.' },
+        { key: 'replay_capacity', val: '800 transitions', desc: 'Circular replay buffer (≈3 episodes × ~267 transitions each). x_t/g_t reconstructed on demand from t_idx. Exponential recency sampling (half-life = 3 years).' },
+        { key: 'batch_size', val: '64', desc: 'Transitions sampled per gradient update from the replay buffer.' },
+        { key: 'updates_per_step', val: '20', desc: 'Gradient updates per environment step; high replay ratio for sample efficiency. policy_delay=2 (actor updated every 2 critic steps).' },
+        { key: 'tau (Polyak)', val: '0.005', desc: 'Soft target network update rate. Target nets track main nets slowly for TD stability. Reduce to 0.002 if Q-values drift upward.' },
+        { key: 'M(i,t) VIX multiplier', val: 'max(1.0, VIX_t/20)', desc: 'Scales spread and market impact upward during high-VIX regimes. Accounts for real-world liquidity deterioration.' },
+      ],
+    },
+  },
+];
+
+
+const CONNECTORS = [
+  {
+    from: 'Data Pipeline', to: 'Feature Engineering',
+    passes: 'Validated bars + mask_t [K_max] + active_ids_t [K_max]',
+    detail: 'The pipeline passes clean, t_idx-indexed adjusted OHLCV arrays, the binary tradability mask (1=active NDX member with valid prices, 0=padded), and the permanent security_id index per slot. Feature Engineering uses the bars to compute all 29 per-asset signals and uses the mask to zero-pad inactive slots before normalization.',
+  },
+  {
+    from: 'Feature Engineering', to: 'Observation Space',
+    passes: 'x_t [60 × 110 × 25] + g_t [D_global = 20] + mask_t [110]',
+    detail: 'The normalized per-asset feature tensor (60 daily snapshots × 110 slots × 25 features) and the 20-dimensional global context vector (8 portfolio-state scalars + 3 QQQ benchmark metrics + 9 macro signals) are bundled with the tradability mask. All tensors are already padded to K_max=110. No further shaping is needed.',
+  },
+  {
+    from: 'Observation Space', to: 'Neural Encoder',
+    passes: 's_t = (x_t [60,110,25], g_t [20], mask_t [110]) + active_ids_t for embedding lookups',
+    detail: 'The complete state bundle is passed to the model\'s forward() call. The mask flows through every sub-module: gating TCN output, masking attention keys so inactive stocks cannot be attended to, forcing actor logits for inactive slots to −∞ (guaranteeing zero weight allocation), and controlling critic pooling so inactive slots contribute nothing to the global state summary.',
+  },
+  {
+    from: 'Neural Encoder', to: 'Actor → Decision',
+    passes: 'h[i] ∈ ℝ¹²⁸ per active asset (post-attention representations)',
+    detail: 'The shared encoder outputs one 128-dim vector per active asset. The Actor head in Stage 5 takes these vectors, runs its own MLP per asset to produce logits, masks inactive slots to −∞, injects Logistic-Normal noise, and applies masked softmax to produce w_pre. The Critics (used only during SAC training in Stage 6) also read from these same encoder outputs via their own attention stacks.',
+  },
+  {
+    from: 'Actor → Decision', to: 'Execution & SAC Loop',
+    passes: 'w<sub>exec</sub> [K_max=110] + log π<sub>pre</sub> [1] + violations_t',
+    detail: 'The legally-feasible weight vector w_exec is the actual trade order. The environment computes Δw = w_exec_t − w_exec_{t-1}, converts to dollar amounts using current NAV, fills at next-open prices, deducts four-component transaction costs (scaled by VIX multiplier), and updates portfolio NAV. log π<sub>pre</sub> and violations_t are stored in the replay buffer transition tuple for SAC entropy computation and reward shaping.',
+  },
+];
+
+function showTT(e, title, body) {
+  const tt = document.getElementById('tooltip');
+  tt.innerHTML = `<div class="tt-title">${title}</div><div>${body}</div>`;
+  tt.classList.add('visible');
+  posTT(e);
+}
+
+function posTT(e) {
+  const tt = document.getElementById('tooltip');
+  const rect = e.getBoundingClientRect();
+  const x = rect.left + rect.width / 2 - tt.offsetWidth / 2;
+  const y = rect.top - tt.offsetHeight - 12;
+  tt.style.left = Math.max(8, x) + 'px';
+  tt.style.top = Math.max(8, y) + 'px';
+}
+
+function hideTT() {
+  document.getElementById('tooltip').classList.remove('visible');
+}
+
+function openDeepDive(idx) {
+  const stage = STAGES[idx];
+  const dd = document.getElementById('deepdive');
+  const ddContent = document.getElementById('ddContent');
+  const ddNavLabel = document.getElementById('ddNavLabel');
+  
+  ddNavLabel.textContent = stage.label;
+  
+  let html = `<div class="dd-panel-wrap">
+    <div class="dd-panel-header">
+      <div class="dd-panel-eyebrow" style="color:${stage.color}">${stage.label}</div>
+      <div class="dd-panel-title">${stage.title}</div>
+      <div class="dd-panel-sub">${stage.sub}</div>
+    </div>
+    <div class="panel-section">
+      <div class="panel-section-title">Overview</div>
+      <p>${stage.panel.summary}</p>
+    </div>`;
+  
+  if (stage.panel.design_note) {
+    html += `<div class="dd-design-note" style="--stage-color:${stage.color}">
+      <div class="dd-design-note-title">${stage.panel.design_note.title}</div>
+      <p style="margin:0;color:#7a9abb;font-size:11.5px;line-height:1.65">${stage.panel.design_note.body}</p>
+    </div>`;
+  }
+  
+  if (stage.panel.timeline) {
+    html += `<div class="panel-section">
+      <div class="panel-section-title">${stage.panel.timeline_label || 'Timeline'}</div>
+      <div class="dd-timeline">`;
+    stage.panel.timeline.forEach((node, i) => {
+      html += `<div class="dd-tl-node"><div class="dd-tl-node-label">${node.label}</div><div class="dd-tl-node-desc">${node.desc}</div></div>`;
+      if (i < stage.panel.timeline.length - 1) html += `<div class="dd-tl-arrow">→</div>`;
+    });
+    html += `</div></div>`;
+  }
+  
+  if (idx === 0 && stage.panel.forced_liq_note) {
+    html += `<div class="panel-section">
+      <div class="panel-section-title">Forced Liquidations</div>
+      <p>${stage.panel.forced_liq_note}</p>
+    </div>`;
+  }
+  
+  if (idx === 1 && stage.panel.feature_groups) {
+    html += `<div class="panel-section">
+      <div class="panel-section-title">Feature Groups</div>`;
+    stage.panel.feature_groups.forEach(fg => {
+      html += `<div class="dd-feature-group">
+        <div class="dd-feature-group-title" style="background:${fg.color}33;color:${fg.color}">${fg.title}</div>
+        <div class="dd-feature-items">`;
+      fg.items.forEach(item => {
+        html += `<span class="dd-feature-chip" style="border-color:${fg.color}88;color:#7a9abb">${item}</span>`;
+      });
+      html += `</div></div>`;
+    });
+    html += `</div>`;
+    
+    html += `<div class="panel-section">
+      <div class="panel-section-title">Normalization Pipeline</div>
+      <div class="dd-norm-steps">`;
+    stage.panel.norm_steps.forEach((step, i) => {
+      html += `<div class="dd-norm-step"><span class="dd-norm-step-num">${step.num}</span><div style="font-size:10px;color:#8a9abb;line-height:1.4">${step.label}</div><div style="font-size:9px;color:#4a5a7a;margin-top:2px;line-height:1.3">${step.desc}</div></div>`;
+      if (i < stage.panel.norm_steps.length - 1) html += `<div class="dd-norm-arrow">→</div>`;
+    });
+    html += `</div></div>`;
+  }
+  
+  if (idx === 2 && stage.panel.tensor_spec) {
+    html += `<div class="panel-section">
+      <div class="panel-section-title">Tensor Specification</div>
+      <table class="dd-tensor-table"><thead><tr><th>Tensor</th><th>Shape</th><th>Description</th></tr></thead><tbody>`;
+    stage.panel.tensor_spec.forEach(t => {
+      html += `<tr><td><span class="dd-tensor-name">${t.name}</span></td><td><span class="dd-tensor-shape">${t.shape}</span></td><td><span class="dd-tensor-desc">${t.desc}</span></td></tr>`;
+    });
+    html += `</tbody></table></div>`;
+    
+    html += `<div class="panel-section">
+      <div class="panel-section-title">Action Generation Pipeline</div>
+      <div style="font-size:11.5px;color:#8a9abb;line-height:1.7">`;
+    stage.panel.action_steps.forEach(step => {
+      html += `<div style="margin-bottom:6px">${step}</div>`;
+    });
+    html += `</div></div>`;
+  }
+  
+  if (idx === 3 && stage.panel.branch_detail) {
+    html += `<div class="panel-section">
+      <div class="panel-section-title">Architecture Details</div>
+      <p><strong style="color:#f59e0b">Actor Branch:</strong> ${stage.panel.branch_detail.actor_detail}</p>
+      <p style="margin-top:8px"><strong style="color:#f59e0b">Critic Branches:</strong> ${stage.panel.branch_detail.critic_detail}</p>
+      <p style="margin-top:8px"><strong style="color:#f59e0b">Sector Adjacency:</strong> ${stage.panel.branch_detail.sector_bias}</p>
+    </div>`;
+  }
+  
+  if (idx === 4 && stage.panel.algorithm_steps) {
+    html += `<div class="panel-section">
+      <div class="panel-section-title">ConstraintProjector Algorithm</div>
+      <div style="font-size:11.5px;color:#8a9abb;line-height:1.7">`;
+    stage.panel.algorithm_steps.forEach(step => {
+      html += `<div style="margin-bottom:8px"><strong style="color:#6ee7b7">${step.step}</strong> ${step.desc}</div>`;
+    });
+    html += `</div></div>`;
+  }
+  
+  if (idx === 5 && stage.panel.reward_terms) {
+    html += `<div class="panel-section">
+      <div class="panel-section-title">5-Term Reward Formula</div>
+      <div style="font-family:'SF Mono','Fira Code',monospace;font-size:12px;color:#a0c0ff;background:#060a14;padding:12px;border:1px solid #1a2540;border-radius:6px;margin-bottom:12px;line-height:1.6">r<sub>t</sub> = (e<sub>t</sub> / σ<sub>mkt,t</sub>) − λ<sub>slow</sub>·σ<sub>t</sub> − λ<sub>tail</sub>·max(0, −e<sub>t</sub>/σ<sub>mkt,t</sub>)² − λ<sub>cost</sub>·cost<sub>t</sub> − λ<sub>cv</sub>·violations<sub>t</sub></div>
+      <div style="font-size:10.5px;color:#7a9abb;margin-bottom:12px">Clipped to [−5, +5] after all terms are summed.</div>`;
+    stage.panel.reward_terms.forEach(term => {
+      html += `<div class="dd-reward-term">
+        <div class="dd-reward-formula">${term.formula}</div>
+        <div class="dd-reward-lambda">${term.lambda}</div>
+        <div class="dd-reward-desc">${term.desc}</div>
+      </div>`;
+    });
+    
+    html += `<div class="panel-section-title" style="margin-top:16px">Transaction Cost Model</div>
+      <table class="dd-tensor-table"><thead><tr><th>Component</th><th>Formula</th><th>Description</th></tr></thead><tbody>`;
+    stage.panel.cost_model.forEach(c => {
+      html += `<tr><td><strong style="color:#f59e0b;font-size:11px">${c.component}</strong></td><td><code style="font-size:10.5px;color:#a0c0ff">${c.formula}</code></td><td>${c.desc}</td></tr>`;
+    });
+    html += `</tbody></table></div>`;
+  }
+  
+  html += `<div class="panel-section">
+    <div class="panel-section-title">Inputs</div>`;
+  stage.panel.inputs.forEach(inp => {
+    html += `<div class="io-item"><span class="io-arrow">→</span><div class="io-text"><span class="io-chip" style="background:${inp.chipColor}33;color:${inp.chipColor}">${inp.chip}</span> ${inp.text}</div></div>`;
+  });
+  html += `</div>`;
+  
+  html += `<div class="panel-section">
+    <div class="panel-section-title">Outputs</div>`;
+  stage.panel.outputs.forEach(out => {
+    html += `<div class="io-item"><span class="io-arrow">←</span><div class="io-text"><span class="io-chip" style="background:#6ee7b744;color:#6ee7b7">${out.chip}</span> ${out.text}</div></div>`;
+  });
+  html += `</div>`;
+  
+  html += `<div class="panel-section">
+    <div class="panel-section-title">Why It Matters</div>
+    <p>${stage.panel.why}</p>
+  </div>`;
+  
+  html += `<div class="panel-section">
+    <div class="panel-section-title">Key Parameters & Facts</div>`;
+  stage.panel.params.forEach(p => {
+    html += `<div class="param-row">
+      <span class="param-key">${p.key}</span>
+      <span class="param-val">${p.val}</span>
+      <span class="param-desc">${p.desc}</span>
+    </div>`;
+  });
+  html += `</div></div>`;
+  
+  ddContent.innerHTML = html;
+  dd.classList.add('open');
+}
+
+function closeDeepDive() {
+  document.getElementById('deepdive').classList.remove('open');
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  const stageCards = document.querySelectorAll('.stage-card');
+  const connectors = document.querySelectorAll('.connector');
+  const ddBack = document.getElementById('ddBack');
+  const deepdive = document.getElementById('deepdive');
+  const pipelineScroll = document.getElementById('pipelineScroll');
+  
+  stageCards.forEach(card => {
+    card.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const idx = parseInt(card.dataset.stage);
+      openDeepDive(idx);
+    });
+    
+    card.addEventListener('mouseenter', (e) => {
+      showTT(e, STAGES[parseInt(card.dataset.stage)].tooltip.title, STAGES[parseInt(card.dataset.stage)].tooltip.body);
+    });
+    
+    card.addEventListener('mouseleave', hideTT);
+  });
+  
+  connectors.forEach(conn => {
+    conn.addEventListener('mouseenter', (e) => {
+      const idx = parseInt(conn.dataset.conn);
+      showTT(e, CONNECTORS[idx].from + ' → ' + CONNECTORS[idx].to, CONNECTORS[idx].detail);
+    });
+    
+    conn.addEventListener('mouseleave', hideTT);
+  });
+  
+  ddBack.addEventListener('click', closeDeepDive);
+  deepdive.addEventListener('click', (e) => {
+    if (e.target === deepdive) closeDeepDive();
+  });
+  
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeDeepDive();
+  });
+});
+</script>
+</body>
+</html>
