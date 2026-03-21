@@ -513,6 +513,13 @@ def run_oos_eval(
     cost_bps_list: List[float] = []
     w_exec_hist:   List[np.ndarray] = []
     dates_list:    List[str] = []
+    detail_rows:   List[dict] = []
+
+    # Feature index constants (x_panel: 17 TS + 8 CS)
+    _IDX_RET_Z_4W   = 18   # CS[1]: cross-sectional z-score of 4-week return
+    _IDX_VIX        = 0    # g_panel macro[0]: vix_level (normalised)
+    _IDX_YIELD_SPR  = 4    # g_panel macro[4]: yield_spread (normalised)
+    _IDX_QQQ_RET1W  = 9    # g_panel benchmark[0]: qqq_ret_1w
 
     while not done:
         w_cur = env_oos._ep_step
@@ -522,24 +529,69 @@ def run_oos_eval(
             panel_data_oos, p_cur, L, device, id_mapper
         )
         with torch.no_grad():
-            w_pre_t, _ = model.actor_forward(
+            w_pre_t, log_prob_t = model.actor_forward(
                 x_ten, g_ten, mask_ten, sid_ten, ids_ten
             )
         w_pre_np = w_pre_t.squeeze(0).cpu().numpy()
 
         obs, reward_components, done, info = env_oos.step(w_pre_np)
 
+        w_exec = env_oos._w_exec.copy()
         port_returns.append(float(reward_components["r_port_t"]))
         qqq_returns.append(float(reward_components["r_qqq_t"]))
         cost_bps_list.append(float(reward_components["cost_t"]) * 1e4)
-        w_exec_hist.append(env_oos._w_exec.copy())
+        w_exec_hist.append(w_exec)
         dates_list.append(info["date_exec"])
+
+        # ── Per-step diagnostics ────────────────────────────────────────────
+        mask_np  = mask_ten[0].cpu().numpy()          # [K]
+        active   = mask_np > 0.5
+        n_active = int(active.sum())
+
+        # Cross-sectional stats of ret_z_4w for active assets (current week)
+        x_cur_np = x_ten[0, -1, :, :].cpu().numpy()  # [K, F] — most recent step
+        ret_z_active = x_cur_np[active, _IDX_RET_Z_4W]
+        cs_std_ret_z_4w  = float(np.std(ret_z_active))  if n_active > 1 else float("nan")
+        cs_mean_ret_z_4w = float(np.mean(ret_z_active)) if n_active > 0 else float("nan")
+
+        # Out-of-distribution score: fraction of active-asset feature values outside [-2, 2]
+        x_active_all = x_cur_np[active, :]            # [n_active, F]
+        ood_frac     = float(np.mean(np.abs(x_active_all) > 2.0)) if n_active > 0 else float("nan")
+
+        # Macro context seen by the model
+        g_np         = g_ten[0].cpu().numpy()         # [D_global]
+        vix_level    = float(g_np[_IDX_VIX])
+        yield_spread = float(g_np[_IDX_YIELD_SPR])
+        qqq_ret_1w   = float(g_np[_IDX_QQQ_RET1W])
+
+        # Policy confidence and projection divergence
+        log_prob_val      = float(log_prob_t[0].item())
+        w_pre_exec_l1diff = float(0.5 * np.abs(w_pre_np - w_exec).sum())
+        max_weight        = float(w_exec.max())
+        eff_n             = float(1.0 / (np.sum(w_exec ** 2) + 1e-10))
+
+        detail_rows.append({
+            "date":               info["date_exec"],
+            "portfolio_return":   float(reward_components["r_port_t"]),
+            "qqq_return":         float(reward_components["r_qqq_t"]),
+            "n_active":           n_active,
+            "max_weight":         max_weight,
+            "effective_n":        eff_n,
+            "w_pre_exec_l1_diff": w_pre_exec_l1diff,
+            "policy_log_prob":    log_prob_val,
+            "cs_std_ret_z_4w":    cs_std_ret_z_4w,
+            "cs_mean_ret_z_4w":   cs_mean_ret_z_4w,
+            "ood_frac":           ood_frac,
+            "vix_level_z":        vix_level,
+            "yield_spread_z":     yield_spread,
+            "qqq_ret_1w_z":       qqq_ret_1w,
+        })
 
     model.train()
 
     if len(port_returns) == 0:
         logger.warning("  [OOS] Empty test window — no metrics computed")
-        return {}, np.array([]), np.array([]), []
+        return {}, np.array([]), np.array([]), [], []
 
     port_arr   = np.array(port_returns, dtype=np.float64)
     qqq_arr    = np.array(qqq_returns,  dtype=np.float64)
@@ -563,7 +615,7 @@ def run_oos_eval(
         w_exec            = w_exec_arr,
         asset_returns     = None,
     )
-    return metrics, port_arr, qqq_arr, dates_list
+    return metrics, port_arr, qqq_arr, dates_list, detail_rows
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -985,7 +1037,7 @@ def main(run_name: str = "", fold_only: int = 0) -> None:
             logger=logger,
             id_mapper=id_mapper,
         )
-        metrics, port_arr, qqq_arr, dates_list = oos_result
+        metrics, port_arr, qqq_arr, dates_list, detail_rows = oos_result
 
         # Save oos_returns.csv
         oos_returns_path = results_dir / "oos_returns.csv"
@@ -994,6 +1046,19 @@ def main(run_name: str = "", fold_only: int = 0) -> None:
             writer.writerow(["date", "portfolio_return", "qqq_return"])
             for d, pr, qr in zip(dates_list, port_arr.tolist(), qqq_arr.tolist()):
                 writer.writerow([d, f"{pr:.8f}", f"{qr:.8f}"])
+
+        # Save oos_weekly_detail.csv — per-step diagnostics for post-hoc analysis
+        _detail_fields = [
+            "date", "portfolio_return", "qqq_return",
+            "n_active", "max_weight", "effective_n", "w_pre_exec_l1_diff",
+            "policy_log_prob", "cs_std_ret_z_4w", "cs_mean_ret_z_4w",
+            "ood_frac", "vix_level_z", "yield_spread_z", "qqq_ret_1w_z",
+        ]
+        detail_path = results_dir / "oos_weekly_detail.csv"
+        with open(detail_path, "w", newline="", encoding="utf-8") as f:
+            dw = csv.DictWriter(f, fieldnames=_detail_fields)
+            dw.writeheader()
+            dw.writerows(detail_rows)
 
         # Save oos_metrics.json
         oos_metrics_path = results_dir / "oos_metrics.json"
