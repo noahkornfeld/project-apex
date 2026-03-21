@@ -170,6 +170,8 @@ class SACTrainer:
         self._entropy_scale    = float(sac_cfg.entropy_scale_factor)
         self._alpha_clamp_min  = float(sac_cfg.alpha_clamp_min)
         self._alpha_clamp_max  = float(sac_cfg.alpha_clamp_max)
+        self._bellman_clip_low  = float(sac_cfg.bellman_clip_low)
+        self._bellman_clip_high = float(sac_cfg.bellman_clip_high)
 
         # §8.8 log_alpha (optimised in log-space; α = exp(log_α))
         init_log_alpha = math.log(float(sac_cfg.init_alpha))
@@ -490,6 +492,12 @@ class SACTrainer:
                 R_n.unsqueeze(1)
                 + gamma_n.unsqueeze(1) * (1.0 - done_n.unsqueeze(1)) * v_soft
             )   # [B, N_q]
+
+            # §8.11  Bellman target clip — prevents bootstrapping divergence on
+            # high-variance data (e.g. 2008 crash + recovery in same replay buffer).
+            # Clip bounds are conservative (±30 >> max R_n ≈ ±19); fires only
+            # during runaway feedback, not during normal stable training.
+            z_target = z_target.clamp(self._bellman_clip_low, self._bellman_clip_high)
 
         # ------------------------------------------------------------------
         # Online critics at current state

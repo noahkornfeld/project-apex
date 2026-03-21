@@ -216,6 +216,30 @@ def build_market_data(
     gap_vol_252_arr = np.where(valid_k, dense["gap_vol_252"][T_idx, col_safe], 0.0 ).astype(np.float32)
 
     # ------------------------------------------------------------------
+    # 4b. Forward-fill market-wide closure rows.
+    # A row where no slot has any adj_close means the exchange was closed
+    # that day (e.g. Hurricane Sandy 2012-10-29) — not a per-stock gap.
+    # Carry the previous day's values so these dates do not corrupt the
+    # 60-day feature lookback window or trigger missingness-based forced
+    # liquidation.  Per-stock gaps on normal trading days are unaffected.
+    # ------------------------------------------------------------------
+    _has_price = (adj_close_arr > 1e-8).any(axis=1)          # [T] bool
+    _closed    = np.where(~_has_price)[0]                     # row indices
+    if len(_closed) > 0:
+        import logging as _log
+        _log.getLogger(__name__).info(
+            f"[market_data] Forward-filling {len(_closed)} market-closure "
+            f"row(s): {', '.join(dates_str[_closed])}"
+        )
+        for _idx in _closed:
+            if _idx > 0:
+                adj_close_arr  [_idx] = adj_close_arr  [_idx - 1]
+                adj_open_arr   [_idx] = adj_open_arr   [_idx - 1]
+                adv63_arr      [_idx] = adv63_arr      [_idx - 1]
+                vol_252_arr    [_idx] = vol_252_arr    [_idx - 1]
+                gap_vol_252_arr[_idx] = gap_vol_252_arr[_idx - 1]
+
+    # ------------------------------------------------------------------
     # 5. QQQ close and VIX from macro_features.parquet
     # ------------------------------------------------------------------
     macro = pd.read_parquet(macro_path, columns=["date", "QQQ_Close", "VIX_Close"])

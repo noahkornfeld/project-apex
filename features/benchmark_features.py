@@ -5,8 +5,14 @@ Computes QQQ benchmark features that are broadcast into g_t.
 
 §3.5.1 Benchmark Features List:
     QQQ 1-Week Return    — Log return over 5 trading days
-    QQQ 4-Week Volatility— Std of daily log returns × √252 over 20 days
+    QQQ 52-Week Return   — Log return over 240 trading days (replaces 4-week vol)
     QQQ 12-Week Return   — Log return over 60 trading days
+
+qqq_ret_52w replaces the old qqq_vol_4w.  Diagnostic evidence showed the
+agent was not consistently using the volatility signal to adjust market
+exposure, and failed to stay long in sustained bull-market regimes (Folds 4,
+5, 8).  A 52-week return gives the agent a clear "are we in a multi-year
+uptrend?" signal that is orthogonal to the 12-week momentum already present.
 """
 
 import numpy as np
@@ -15,14 +21,13 @@ from typing import Optional
 
 BENCHMARK_FEATURE_NAMES = [
     "qqq_ret_1w",
-    "qqq_vol_4w",
+    "qqq_ret_52w",
     "qqq_ret_12w",
 ]
 
 DAYS_1W  = 5
-DAYS_4W  = 20
+DAYS_52W = 240   # ~52 trading weeks
 DAYS_12W = 60
-ANNUALIZE = np.sqrt(252)
 EPS = 1e-8
 
 
@@ -68,8 +73,8 @@ def compute_benchmark_features(
     # QQQ 1-week return (sum of last 5 log returns)
     qqq_ret_1w = qqq_lr.rolling(DAYS_1W, min_periods=DAYS_1W).sum()
 
-    # QQQ 4-week volatility (annualized std of daily log returns over 20 days)
-    qqq_vol_4w = qqq_lr.rolling(DAYS_4W, min_periods=DAYS_4W).std() * ANNUALIZE
+    # QQQ 52-week return (sum of last 240 log returns — sustained trend signal)
+    qqq_ret_52w = qqq_lr.rolling(DAYS_52W, min_periods=DAYS_52W // 4).sum()
 
     # QQQ 12-week return
     qqq_ret_12w = qqq_lr.rolling(DAYS_12W, min_periods=DAYS_12W).sum()
@@ -77,7 +82,7 @@ def compute_benchmark_features(
     out = pd.DataFrame(
         {
             "qqq_ret_1w":  qqq_ret_1w,
-            "qqq_vol_4w":  qqq_vol_4w,
+            "qqq_ret_52w": qqq_ret_52w,
             "qqq_ret_12w": qqq_ret_12w,
         },
         index=df.index,

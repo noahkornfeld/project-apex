@@ -49,6 +49,8 @@ class _SACConfig:
     grad_clip_critic:     float = 1.0
     grad_clip_actor:      float = 5.0
     grad_clip_encoder:    float = 1.0
+    bellman_clip_low:     float = -30.0
+    bellman_clip_high:    float =  30.0
 
 
 class _OptConfig:

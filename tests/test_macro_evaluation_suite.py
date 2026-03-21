@@ -109,7 +109,7 @@ class TestM1FeatureValueSanity:
     """
     M1 — Feature Value Sanity
     VIX=20 on 2020-01-06, VIX=22 on 2020-01-13 (5 trading days later).
-    Assert vix_level=22.0, vix_change=+2.0 (1-week delta), yield_spread = 10Y - 3M (signed).
+    Assert vix_level=22.0, vix_4w_trend (20-day delta), yield_spread = 10Y - 3M (signed).
     """
 
     def test_vix_level_is_spot_close(self):
@@ -132,27 +132,29 @@ class TestM1FeatureValueSanity:
         assert abs(out.loc[t, "vix_level"] - 22.0) < 1e-6, \
             f"vix_level at 2020-01-13 = {out.loc[t, 'vix_level']:.4f}, expected 22.0"
 
-    def test_vix_change_is_5day_delta(self):
-        """vix_change must be a 5-trading-day (1-week) delta: VIX(t) - VIX(t-5)."""
-        dates = pd.date_range("2020-01-06", periods=10, freq="B")
-        vix   = np.array([20.0, 20.5, 21.0, 21.5, 21.8, 22.0, 22.3, 22.5, 22.7, 23.0])
-        qqq   = np.ones(10) * 200.0
+    def test_vix_4w_trend_is_20day_delta(self):
+        """vix_4w_trend must be a 20-trading-day (4-week) delta: VIX(t) - VIX(t-20)."""
+        n     = 30
+        dates = pd.date_range("2020-01-06", periods=n, freq="B")
+        # Linear ramp: VIX goes 20, 20.5, 21, ... (0.5/day)
+        vix   = 20.0 + np.arange(n) * 0.5
+        qqq   = np.ones(n) * 200.0
 
         df = _make_controlled_macro(
             dates, vix,
-            y10=np.ones(10)*2.5, y3m=np.ones(10)*2.0,
-            oil=np.ones(10)*60, gold=np.ones(10)*1400,
-            dxy=np.ones(10)*98, hyg=np.ones(10)*85,
+            y10=np.ones(n)*2.5, y3m=np.ones(n)*2.0,
+            oil=np.ones(n)*60, gold=np.ones(n)*1400,
+            dxy=np.ones(n)*98, hyg=np.ones(n)*85,
             qqq=qqq,
         )
         out = compute_macro_broadcast_features(df)
 
-        # At 2020-01-13 (index 5): vix_change = VIX[5] - VIX[0] = 22.0 - 20.0 = +2.0
-        t = pd.Timestamp("2020-01-13")
-        expected_change = 22.0 - 20.0
-        actual_change   = out.loc[t, "vix_change"]
-        assert abs(actual_change - expected_change) < 1e-6, \
-            f"vix_change at 2020-01-13 = {actual_change:.4f}, expected {expected_change:.4f} (1-week delta)"
+        # At index 20: vix_4w_trend = VIX[20] - VIX[0] = (20 + 10) - 20 = 10.0
+        t = dates[20]
+        expected = vix[20] - vix[0]
+        actual   = out.loc[t, "vix_4w_trend"]
+        assert abs(actual - expected) < 1e-6, \
+            f"vix_4w_trend at index 20 = {actual:.4f}, expected {expected:.4f} (20-day delta)"
 
     def test_yield_spread_is_10y_minus_3m(self):
         """yield_spread = 10Y_yield - 3M_yield (signed, not absolute)."""
@@ -174,13 +176,15 @@ class TestM1FeatureValueSanity:
         assert abs(actual - expected) < 1e-4, \
             f"yield_spread = {actual:.4f}, expected {expected:.4f}"
 
-    def test_vix_change_first_5_rows_are_nan_or_zero(self):
-        """First 5 rows cannot have a valid 5-day vix_change (filled with 0 by ffill)."""
-        df  = _flat_macro(n=20)
+    def test_vix_4w_trend_first_20_rows_are_zero(self):
+        """First 20 rows cannot have a valid 20-day vix_4w_trend (filled with 0)."""
+        df  = _flat_macro(n=30)
         out = compute_macro_broadcast_features(df)
-        # After ffill().fillna(0), row 0 should be 0 (no prior data)
-        assert out["vix_change"].iloc[0] == 0.0, \
-            "First row vix_change should be 0 (no prior 5-day window available)"
+        # After ffill().fillna(0), rows 0-19 should be 0 (no prior 20-day window)
+        assert out["vix_4w_trend"].iloc[0] == 0.0, \
+            "First row vix_4w_trend should be 0 (no prior 20-day window available)"
+        assert out["vix_4w_trend"].iloc[19] == 0.0, \
+            "Row 19 vix_4w_trend should be 0 (20-day window not yet full)"
 
 
 class TestM2YieldSpreadDirection:
@@ -235,7 +239,7 @@ class TestM3LogReturnVsLevelFeatures:
     """
     M3 — Log Return vs Level Features
     Price-based instruments (Oil, Gold, HYG, DXY, QQQ) → log returns.
-    VIX, 10Y Yield, 3M Yield → levels (or 5-day delta for VIX change).
+    VIX, 10Y Yield, 3M Yield → levels (or 20-day delta for vix_4w_trend).
     """
 
     def test_vix_level_is_not_a_return(self):
@@ -298,11 +302,11 @@ class TestM4WindowAccuracy:
     """
     M4 — Window Accuracy
     Exact window sizes per spec:
-        vix_level  : 1 day (spot)
-        vix_change : 5 trading days
-        qqq_1w_ret : 5 trading days
-        qqq_4w_vol : 20 trading days
-        qqq_12w_ret: 60 trading days
+        vix_level    : 1 day (spot)
+        vix_4w_trend : 20 trading days
+        qqq_ret_1w   : 5 trading days
+        qqq_ret_52w  : 240 trading days
+        qqq_ret_12w  : 60 trading days
     Offset by 1 day must change rolling features.
     """
 
@@ -321,14 +325,14 @@ class TestM4WindowAccuracy:
             assert abs(out.loc[d, "vix_level"] - vix[i]) < 1e-6, \
                 f"vix_level at {d.date()} should be {vix[i]}, got {out.loc[d, 'vix_level']}"
 
-    def test_vix_change_window_is_5_days(self):
+    def test_vix_4w_trend_window_is_20_days(self):
         """
-        vix_change at row t = VIX[t] - VIX[t-5].
+        vix_4w_trend at row t = VIX[t] - VIX[t-20].
         Verified against hand-computed values.
         """
-        n     = 15
+        n     = 25
         dates = pd.date_range("2023-01-02", periods=n, freq="B")
-        vix   = np.arange(10.0, 10.0 + n)  # 10, 11, 12, ... 24
+        vix   = np.arange(10.0, 10.0 + n)  # 10, 11, 12, ... 34
         qqq   = np.ones(n) * 350.0
         df = _make_controlled_macro(
             dates, vix, y10=np.ones(n)*4.0, y3m=np.ones(n)*3.5,
@@ -337,15 +341,15 @@ class TestM4WindowAccuracy:
         )
         out = compute_macro_broadcast_features(df)
 
-        # At index 5: VIX[5] - VIX[0] = 15 - 10 = 5.0
-        t = dates[5]
-        expected = vix[5] - vix[0]
-        actual   = out.loc[t, "vix_change"]
+        # At index 20: VIX[20] - VIX[0] = 30 - 10 = 20.0
+        t = dates[20]
+        expected = vix[20] - vix[0]
+        actual   = out.loc[t, "vix_4w_trend"]
         assert abs(actual - expected) < 1e-6, \
-            f"vix_change at index 5: expected {expected:.1f} (5-day delta), got {actual:.4f}"
+            f"vix_4w_trend at index 20: expected {expected:.1f} (20-day delta), got {actual:.4f}"
 
     def test_qqq_windows_match_spec(self):
-        """qqq_1w_ret=5d, qqq_4w_vol=20d, qqq_12w_ret=60d — verified by offset test."""
+        """qqq_ret_1w=5d, qqq_ret_52w=240d, qqq_ret_12w=60d — verified by offset test."""
         n     = 130
         dates = pd.date_range("2020-01-02", periods=n, freq="B")
         rng   = np.random.default_rng(7)
@@ -388,11 +392,12 @@ class TestM4WindowAccuracy:
         bench_a = compute_benchmark_features(make(qqq_a))
         bench_b = compute_benchmark_features(make(qqq_b))
 
-        # Rolling vol must differ because the price history shifted
-        vol_a = bench_a["qqq_vol_4w"].iloc[25]
-        vol_b = bench_b["qqq_vol_4w"].iloc[25]
-        assert abs(vol_a - vol_b) > 1e-6, \
-            "Shifting QQQ prices by 1 day must change qqq_vol_4w (window boundary moved)"
+        # 52w return must differ because the price history shifted
+        # Use iloc[65] — past the min_periods=60 threshold for qqq_ret_52w
+        ret_a = bench_a["qqq_ret_52w"].iloc[65]
+        ret_b = bench_b["qqq_ret_52w"].iloc[65]
+        assert abs(ret_a - ret_b) > 1e-6, \
+            "Shifting QQQ prices by 1 day must change qqq_ret_52w (window boundary moved)"
 
 
 # ===========================================================================
@@ -521,12 +526,12 @@ class TestM6DecisionDateAlignment:
         assert abs(out_spike["vix_level"].iloc[20] - vix_at_dt) < 1e-6, \
             f"VIX spike at d_{{t+1}} leaked into g_t at d_t: {out_spike['vix_level'].iloc[20]:.2f} ≠ {vix_at_dt:.2f}"
 
-    def test_t_plus_1_data_not_in_vix_change_at_t(self):
+    def test_t_plus_1_data_not_in_vix_4w_trend_at_t(self):
         """
-        vix_change at d_t = VIX[t] - VIX[t-5].
-        Modifying VIX[t+1] must not change vix_change at d_t.
+        vix_4w_trend at d_t = VIX[t] - VIX[t-20].
+        Modifying VIX[t+1] must not change vix_4w_trend at d_t.
         """
-        n     = 30
+        n     = 35
         dates = pd.date_range("2023-01-02", periods=n, freq="B")
         vix   = np.ones(n) * 20.0
         df    = _make_controlled_macro(
@@ -536,14 +541,14 @@ class TestM6DecisionDateAlignment:
             qqq=np.ones(n)*350,
         )
         out_normal = compute_macro_broadcast_features(df)
-        change_at_t = out_normal["vix_change"].iloc[10]
+        trend_at_t = out_normal["vix_4w_trend"].iloc[25]   # index 25 > 20-day window
 
         df_mod = df.copy()
-        df_mod.loc[df_mod.index[11], "VIX_Close"] = 500.0   # d_{t+1}
+        df_mod.loc[df_mod.index[26], "VIX_Close"] = 500.0   # d_{t+1}
         out_mod = compute_macro_broadcast_features(df_mod)
 
-        assert abs(out_mod["vix_change"].iloc[10] - change_at_t) < 1e-6, \
-            "Modifying VIX at d_{t+1} must not change vix_change at d_t"
+        assert abs(out_mod["vix_4w_trend"].iloc[25] - trend_at_t) < 1e-6, \
+            "Modifying VIX at d_{t+1} must not change vix_4w_trend at d_t"
 
 
 class TestM7NoForwardFillFutureData:
@@ -915,18 +920,18 @@ class TestM12RegimeChangeStressTest:
         assert max_vix > 60.0, \
             f"VIX during COVID peak should be > 60, got {max_vix:.2f}"
 
-    def test_vix_change_captures_spike_direction(self):
-        """During COVID crash week, vix_change must be large and positive."""
+    def test_vix_4w_trend_captures_spike_direction(self):
+        """During COVID crash week, vix_4w_trend (20-day delta) must be large and positive."""
         macro_df = pd.read_parquet(DATA_DIR / "macro_features.parquet")
         out = compute_macro_broadcast_features(macro_df)
 
-        covid_crash = out.loc["2020-03-09":"2020-03-20", "vix_change"]
+        covid_crash = out.loc["2020-03-09":"2020-03-20", "vix_4w_trend"]
         if len(covid_crash) == 0:
             pytest.skip("COVID crash dates not in dataset")
 
         max_change = covid_crash.max()
-        assert max_change > 10.0, \
-            f"vix_change during COVID crash should be large positive, got {max_change:.2f}"
+        assert max_change > 20.0, \
+            f"vix_4w_trend during COVID crash should be large positive (>20), got {max_change:.2f}"
 
     def test_covid_spike_clips_to_4_after_normalization(self):
         """After normalization+clip, the COVID VIX spike saturates at exactly 4.0."""
@@ -944,38 +949,33 @@ class TestM12RegimeChangeStressTest:
             assert abs(v - CLIP) < 1e-6, \
                 f"COVID VIX at {t.date()} normalized to {v:.4f}, expected clipped at {CLIP}"
 
-    def test_qqq_4w_vol_at_spike_includes_pre_spike_calm_days(self):
+    def test_qqq_ret_52w_captures_regime_direction(self):
         """
-        At the WEEK OF the COVID spike, the 4-week vol window (20 days) includes
-        pre-spike calm days. Verify causality: vol at spike onset must be GREATER
-        than vol from the calm pre-spike week (spike is already captured) but the
-        20-day window still contains calm days — the test verifies the window
-        boundaries are correct (causal, backward-looking).
+        qqq_ret_52w must be positive in sustained bull markets and negative
+        after bear markets — confirming the feature captures multi-year regime.
 
         Concretely:
-            - Pre-spike calm (Feb 2020): qqq_4w_vol should be LOW
-            - Spike onset (Mar 16, 2020): qqq_4w_vol should be HIGH (spike captured)
-            - The spike onset vol > pre-spike vol confirms the window is causal
-              (picks up the actual crash, not future post-crash recovery data)
+            - End of 2021 bull market: qqq_ret_52w should be strongly positive
+            - End of 2022 bear market: qqq_ret_52w should be negative
         """
         macro_df = pd.read_parquet(DATA_DIR / "macro_features.parquet")
         bench = compute_benchmark_features(macro_df)
 
-        calm_date  = "2020-02-14"   # pre-COVID calm
-        spike_date = "2020-03-16"   # peak crash week
+        bull_date = "2021-12-31"   # end of strong 2021 bull
+        bear_date = "2022-12-30"   # end of 2022 bear market
 
-        if spike_date not in bench.index:
-            pytest.skip("Spike date not in dataset")
-        if calm_date not in bench.index:
-            pytest.skip("Calm date not in dataset")
+        if bull_date not in bench.index:
+            pytest.skip("Bull date not in dataset")
+        if bear_date not in bench.index:
+            pytest.skip("Bear date not in dataset")
 
-        vol_calm  = bench.loc[calm_date,  "qqq_vol_4w"]
-        vol_spike = bench.loc[spike_date, "qqq_vol_4w"]
+        ret_bull = bench.loc[bull_date, "qqq_ret_52w"]
+        ret_bear = bench.loc[bear_date, "qqq_ret_52w"]
 
-        assert vol_spike > 0.3, \
-            f"qqq_4w_vol at COVID spike should be > 0.3 (annualized), got {vol_spike:.4f}"
-        assert vol_spike > vol_calm * 2, \
-            f"vol at spike ({vol_spike:.4f}) should be >2x the pre-spike calm vol ({vol_calm:.4f}) — causal window is working"
+        assert ret_bull > 0.2, \
+            f"qqq_ret_52w at end of 2021 bull should be > 0.2, got {ret_bull:.4f}"
+        assert ret_bear < 0.0, \
+            f"qqq_ret_52w at end of 2022 bear should be negative, got {ret_bear:.4f}"
 
 
 # ===========================================================================

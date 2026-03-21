@@ -16,9 +16,15 @@ Instruments (§3.3.1):
     HYG          — Credit stress
 
 Output features (9 values → part of g_t):
-    vix_level, vix_change,
+    vix_level, vix_4w_trend,
     yield_10y, yield_3m, yield_spread,
     oil_log_ret, gold_log_ret, dxy_log_ret, hyg_log_ret
+
+vix_4w_trend replaces the old 5-day vix_change.  A 20-trading-day (4-week)
+delta gives the agent a meaningful VIX trajectory signal — is fear expanding
+or contracting — rather than noisy 1-day noise.  Diagnostic evidence showed
+corr(rolling_beta, vix_5d_change) ≈ 0 (p=0.80) across all folds, confirming
+the 5-day window carried no usable signal.
 """
 
 import numpy as np
@@ -29,7 +35,7 @@ EPS = 1e-8
 
 MACRO_FEATURE_NAMES = [
     "vix_level",
-    "vix_change",
+    "vix_4w_trend",
     "yield_10y",
     "yield_3m",
     "yield_spread",
@@ -70,18 +76,20 @@ def compute_macro_broadcast_features(macro_df: pd.DataFrame) -> pd.DataFrame:
     out = pd.DataFrame(index=df.index, dtype=float)
 
     # --- VIX ---------------------------------------------------------------
-    # vix_level : spot level (1-day window, §M4)
-    # vix_change: 5-trading-day (1-week) delta — §M1/§M4 spec.
-    #   We always recompute from VIX close regardless of what the parquet
-    #   stores in VIX_change (which is a 1-day delta and would fail M1).
+    # vix_level   : spot level (1-day window)
+    # vix_4w_trend: 20-trading-day (4-week) delta — direction of fear expansion.
+    #   Replaces the old 5-day vix_change whose empirical correlation with
+    #   rolling portfolio beta was ~0 (p=0.80) across all 8 OOS folds.
+    #   A 20-day window captures the meaningful VIX trajectory: is vol in a
+    #   sustained rising trend (risk-off) or a sustained falling trend (bull)?
     vix_close = _find_column(df, ["VIX_Close", "VIX_close", "^VIX_Close"])
     if vix_close:
         vix_ser = df[vix_close].astype(float)
-        out["vix_level"]  = vix_ser
-        out["vix_change"] = vix_ser.diff(5)          # 1-week (5 trading days)
+        out["vix_level"]    = vix_ser
+        out["vix_4w_trend"] = vix_ser.diff(20)       # 4-week (20 trading days)
     else:
-        out["vix_level"]  = np.nan
-        out["vix_change"] = np.nan
+        out["vix_level"]    = np.nan
+        out["vix_4w_trend"] = np.nan
 
     # --- Yields ------------------------------------------------------------
     y10 = _find_column(df, ["10Y_Yield_Close", "Yield_10Y", "10Y_Close", "TNX_Close", "^TNX_Close", "yield_10y"])

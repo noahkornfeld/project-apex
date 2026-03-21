@@ -79,6 +79,10 @@ class SACConfig:
     grad_clip_encoder: float = 1.0
     grad_clip_actor: float = 5.0
 
+    # §8.11  Bellman Target Clipping
+    bellman_clip_low:  float = -30.0
+    bellman_clip_high: float =  30.0
+
     def validate(self):
         assert 0 < self.gamma < 1, f"gamma must be in (0,1), got {self.gamma}"
         assert self.alpha_min > 0, f"alpha_min must be > 0, got {self.alpha_min}"
@@ -95,6 +99,8 @@ class SACConfig:
         assert self.grad_clip_actor > 0, "grad_clip_actor must be > 0"
         assert self.alpha_clamp_min < self.alpha_clamp_max, \
             "alpha_clamp_min must be < alpha_clamp_max"
+        assert self.bellman_clip_low < self.bellman_clip_high, \
+            "bellman_clip_low must be < bellman_clip_high"
 
 
 # ===================================================================

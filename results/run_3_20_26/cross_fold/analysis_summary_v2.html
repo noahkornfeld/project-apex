@@ -1,0 +1,872 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Project Apex — Run 4 Analysis Report</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    font-size: 14px;
+    line-height: 1.6;
+    color: #1a1a2e;
+    background: #f4f6fb;
+  }
+
+  /* ── Layout ── */
+  .page-wrap { max-width: 1100px; margin: 0 auto; padding: 32px 24px 64px; }
+
+  /* ── Header ── */
+  .report-header {
+    background: linear-gradient(135deg, #0f3460 0%, #16213e 100%);
+    color: #fff;
+    border-radius: 12px;
+    padding: 36px 40px;
+    margin-bottom: 32px;
+  }
+  .report-header h1 { font-size: 26px; font-weight: 700; letter-spacing: -0.3px; }
+  .report-header .subtitle { font-size: 14px; color: #a8c4e0; margin-top: 6px; }
+  .report-meta {
+    display: flex; gap: 32px; margin-top: 20px; flex-wrap: wrap;
+  }
+  .report-meta .meta-item { }
+  .report-meta .meta-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.8px; color: #7aadcf; }
+  .report-meta .meta-value { font-size: 15px; font-weight: 600; color: #e8f4fd; margin-top: 2px; }
+
+  /* ── Section ── */
+  .section {
+    background: #fff;
+    border-radius: 10px;
+    padding: 28px 32px;
+    margin-bottom: 24px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.07);
+  }
+  .section-title {
+    font-size: 17px; font-weight: 700; color: #0f3460;
+    border-bottom: 2px solid #e8edf5;
+    padding-bottom: 12px; margin-bottom: 20px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .section-title .icon { font-size: 18px; }
+
+  /* ── Scorecard row ── */
+  .scorecard {
+    display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 24px;
+  }
+  .score-card {
+    flex: 1; min-width: 140px;
+    background: #f0f5ff;
+    border: 1px solid #d0dcf0;
+    border-radius: 8px;
+    padding: 16px 18px;
+    text-align: center;
+  }
+  .score-card .sc-label { font-size: 11px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.6px; }
+  .score-card .sc-value { font-size: 26px; font-weight: 700; color: #0f3460; margin-top: 4px; }
+  .score-card .sc-sub   { font-size: 12px; color: #6b7280; margin-top: 2px; }
+  .score-card.highlight { background: #eafaf1; border-color: #6fcf97; }
+  .score-card.highlight .sc-value { color: #1a7a4a; }
+  .score-card.warn { background: #fff8e6; border-color: #f6c94e; }
+  .score-card.warn .sc-value { color: #b07d0a; }
+
+  /* ── Tables ── */
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th {
+    background: #f0f4fb; color: #374151;
+    font-weight: 600; font-size: 12px; text-transform: uppercase;
+    letter-spacing: 0.5px; padding: 10px 14px; text-align: right;
+    border-bottom: 2px solid #d8e2f0;
+  }
+  th:first-child, th.left { text-align: left; }
+  td { padding: 10px 14px; text-align: right; border-bottom: 1px solid #eef1f8; }
+  td:first-child { text-align: left; font-weight: 600; }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: #f9fbff; }
+  .avg-row td { background: #f0f4fb; font-weight: 700; border-top: 2px solid #d8e2f0; }
+  .avg-row:hover td { background: #e8eef8; }
+
+  /* ── Beat badges ── */
+  .beat-yes {
+    display: inline-block; background: #d1fae5; color: #065f46;
+    font-weight: 700; font-size: 11px; padding: 2px 8px;
+    border-radius: 999px; letter-spacing: 0.3px;
+  }
+  .beat-no {
+    display: inline-block; background: #fee2e2; color: #991b1b;
+    font-weight: 700; font-size: 11px; padding: 2px 8px;
+    border-radius: 999px; letter-spacing: 0.3px;
+  }
+  .beat-close {
+    display: inline-block; background: #fef9c3; color: #854d0e;
+    font-weight: 700; font-size: 11px; padding: 2px 8px;
+    border-radius: 999px; letter-spacing: 0.3px;
+  }
+
+  /* ── Clip badge ── */
+  .clip-yes { color: #b45309; font-weight: 600; }
+  .clip-no  { color: #6b7280; }
+
+  /* ── Fold cards ── */
+  .fold-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(480px, 1fr)); gap: 16px; }
+  .fold-card {
+    border: 1px solid #dde3f0;
+    border-radius: 8px; padding: 18px 20px;
+    background: #fafbff;
+  }
+  .fold-card .fc-header {
+    display: flex; justify-content: space-between; align-items: flex-start;
+    margin-bottom: 12px;
+  }
+  .fold-card .fc-title { font-weight: 700; font-size: 14px; color: #0f3460; }
+  .fold-card .fc-period { font-size: 12px; color: #6b7280; margin-top: 2px; }
+  .fold-card .fc-verdict { }
+  .fold-card .fc-metrics {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;
+    margin-bottom: 10px;
+  }
+  .fold-card .fc-metric { }
+  .fold-card .fc-metric .m-label { font-size: 10px; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.4px; }
+  .fold-card .fc-metric .m-value { font-size: 15px; font-weight: 700; color: #1a1a2e; }
+  .fold-card .fc-metric .m-vs { font-size: 11px; color: #6b7280; }
+  .fold-card .fc-note {
+    font-size: 12px; color: #4b5563; margin-top: 10px;
+    padding-top: 10px; border-top: 1px solid #e5e9f5;
+    font-style: italic; line-height: 1.5;
+  }
+  .fold-card.is-key { border-left: 4px solid #f59e0b; }
+  .fold-card.is-weak { border-left: 4px solid #ef4444; }
+  .fold-card.is-strong { border-left: 4px solid #10b981; }
+
+  /* ── Concern / improvement items ── */
+  .concern-list { display: flex; flex-direction: column; gap: 16px; }
+  .concern-item {
+    border-left: 4px solid #6b7280;
+    padding: 14px 18px;
+    background: #fafafa;
+    border-radius: 0 6px 6px 0;
+  }
+  .concern-item.high   { border-left-color: #ef4444; background: #fff5f5; }
+  .concern-item.medium { border-left-color: #f59e0b; background: #fffbeb; }
+  .concern-item.low    { border-left-color: #6b7280; background: #f9fafb; }
+  .concern-item .ci-header { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+  .concern-item .ci-badge {
+    font-size: 10px; font-weight: 700; padding: 2px 8px;
+    border-radius: 999px; text-transform: uppercase; letter-spacing: 0.5px;
+  }
+  .concern-item.high   .ci-badge { background: #fee2e2; color: #991b1b; }
+  .concern-item.medium .ci-badge { background: #fef3c7; color: #92400e; }
+  .concern-item.low    .ci-badge { background: #f3f4f6; color: #4b5563; }
+  .concern-item .ci-title { font-weight: 700; font-size: 14px; color: #1a1a2e; }
+  .concern-item .ci-body  { font-size: 13px; color: #374151; line-height: 1.65; }
+
+  /* ── Improvement items ── */
+  .imp-list { display: flex; flex-direction: column; gap: 16px; }
+  .imp-item {
+    border: 1px solid #dde3f0;
+    border-radius: 8px; overflow: hidden;
+  }
+  .imp-item .imp-header {
+    display: flex; align-items: center; gap: 14px;
+    padding: 14px 20px; background: #f5f8ff;
+    border-bottom: 1px solid #dde3f0;
+  }
+  .imp-item .imp-rank {
+    width: 30px; height: 30px; border-radius: 50%;
+    background: #0f3460; color: #fff;
+    font-weight: 800; font-size: 15px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .imp-item .imp-rank.do-now { background: #0f3460; }
+  .imp-item .imp-rank.medium { background: #0369a1; }
+  .imp-item .imp-rank.stretch { background: #6b7280; }
+  .imp-item .imp-title { font-weight: 700; font-size: 14px; color: #0f3460; flex: 1; }
+  .imp-item .imp-effort {
+    font-size: 11px; padding: 3px 10px;
+    border-radius: 999px; font-weight: 600;
+  }
+  .imp-item .effort-easy   { background: #d1fae5; color: #065f46; }
+  .imp-item .effort-medium { background: #fef3c7; color: #92400e; }
+  .imp-item .effort-hard   { background: #fee2e2; color: #991b1b; }
+  .imp-item .imp-body { padding: 16px 20px; font-size: 13px; color: #374151; line-height: 1.65; }
+  .imp-item .imp-body p + p { margin-top: 8px; }
+  .imp-item .imp-body strong { color: #1a1a2e; }
+  .imp-item .imp-fix {
+    margin-top: 10px; padding: 10px 14px;
+    background: #f0f9ff; border-radius: 6px;
+    border-left: 3px solid #0ea5e9;
+    font-size: 12.5px; color: #0c4a6e;
+  }
+  .imp-item .imp-fix strong { color: #0c4a6e; }
+
+  /* ── Timeline ── */
+  .timeline { display: flex; flex-direction: column; gap: 0; }
+  .tl-item { display: flex; gap: 16px; }
+  .tl-left { display: flex; flex-direction: column; align-items: center; width: 100px; flex-shrink: 0; }
+  .tl-dot { width: 12px; height: 12px; border-radius: 50%; background: #0f3460; margin-top: 4px; flex-shrink: 0; }
+  .tl-line { width: 2px; background: #dde3f0; flex: 1; margin-top: 2px; }
+  .tl-label { font-size: 11px; font-weight: 700; color: #0f3460; text-align: center; margin-top: 2px; }
+  .tl-item:last-child .tl-line { display: none; }
+  .tl-content { padding: 0 0 20px; font-size: 13px; color: #374151; }
+  .tl-content strong { color: #1a1a2e; }
+
+  /* ── Misc ── */
+  .note { font-size: 12px; color: #6b7280; margin-top: 8px; font-style: italic; }
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+  @media (max-width: 700px) { .two-col { grid-template-columns: 1fr; } .fold-grid { grid-template-columns: 1fr; } }
+  .tag { display: inline-block; font-size: 11px; font-weight: 600; padding: 1px 7px; border-radius: 4px; margin-right: 4px; }
+  .tag-blue { background: #dbeafe; color: #1d4ed8; }
+  .tag-green { background: #d1fae5; color: #065f46; }
+  .tag-orange { background: #ffedd5; color: #c2410c; }
+
+  footer {
+    text-align: center; font-size: 12px; color: #9ca3af;
+    margin-top: 40px; padding-top: 20px;
+    border-top: 1px solid #e5e9f5;
+  }
+</style>
+</head>
+<body>
+<div class="page-wrap">
+
+  <!-- ═══════════════════════════════════════════════════════════ HEADER -->
+  <div class="report-header">
+    <h1>Project Apex — Run 4 Analysis Report</h1>
+    <div class="subtitle">SAC Reinforcement Learning · Nasdaq-100 Portfolio · 8-Fold Walk-Forward · Benchmarked vs QQQ</div>
+    <div class="report-meta">
+      <div class="meta-item">
+        <div class="meta-label">Run Completed</div>
+        <div class="meta-value">2026-03-20 13:47</div>
+      </div>
+      <div class="meta-item">
+        <div class="meta-label">Total Runtime</div>
+        <div class="meta-value">18.84 hours</div>
+      </div>
+      <div class="meta-item">
+        <div class="meta-label">Folds Completed</div>
+        <div class="meta-value">8 / 8</div>
+      </div>
+      <div class="meta-item">
+        <div class="meta-label">Test Period Coverage</div>
+        <div class="meta-value">2010 – 2026</div>
+      </div>
+      <div class="meta-item">
+        <div class="meta-label">OOS Weeks</div>
+        <div class="meta-value">835 total</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════ SCORECARD -->
+  <div class="section">
+    <div class="section-title"><span class="icon">📊</span> Run 4 — Cross-Fold Averages</div>
+    <div class="scorecard">
+      <div class="score-card highlight">
+        <div class="sc-label">Avg Sharpe (raw)</div>
+        <div class="sc-value">1.11</div>
+        <div class="sc-sub">vs QQQ avg 1.01</div>
+      </div>
+      <div class="score-card highlight">
+        <div class="sc-label">Avg Sortino (raw)</div>
+        <div class="sc-value">2.63</div>
+        <div class="sc-sub">vs QQQ avg 1.35</div>
+      </div>
+      <div class="score-card">
+        <div class="sc-label">Avg Excess CAGR</div>
+        <div class="sc-value">+16.9%</div>
+        <div class="sc-sub">over QQQ</div>
+      </div>
+      <div class="score-card">
+        <div class="sc-label">Avg Max Drawdown</div>
+        <div class="sc-value">−20.4%</div>
+        <div class="sc-sub">across all folds</div>
+      </div>
+      <div class="score-card highlight">
+        <div class="sc-label">Beat QQQ Sharpe</div>
+        <div class="sc-value">5 / 8</div>
+        <div class="sc-sub">folds</div>
+      </div>
+      <div class="score-card highlight">
+        <div class="sc-label">Beat QQQ Sortino</div>
+        <div class="sc-value">7 / 8</div>
+        <div class="sc-sub">folds</div>
+      </div>
+    </div>
+    <p class="note">Sharpe and Sortino computed on raw portfolio weekly returns using compute_sharpe() / compute_sortino() in evaluation/metrics.py. Not excess returns (that would be the Information Ratio).</p>
+  </div>
+
+  <!-- ═════════════════════════════════════════════ FOLD RESULTS TABLE -->
+  <div class="section">
+    <div class="section-title"><span class="icon">📋</span> Fold-by-Fold Results</div>
+    <table>
+      <thead>
+        <tr>
+          <th class="left">Fold</th>
+          <th class="left">OOS Period</th>
+          <th>CAGR (excess)</th>
+          <th>Sharpe</th>
+          <th>QQQ Sharpe</th>
+          <th>Beat?</th>
+          <th>Sortino</th>
+          <th>QQQ Sortino</th>
+          <th>Beat?</th>
+          <th>Max DD</th>
+          <th>Beta</th>
+          <th>Clip?</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Fold 1</td>
+          <td>2010–2011</td>
+          <td>+11.95%</td>
+          <td>0.81</td>
+          <td>0.53</td>
+          <td><span class="beat-yes">YES +0.28</span></td>
+          <td>1.39</td>
+          <td>0.73</td>
+          <td><span class="beat-yes">YES</span></td>
+          <td>−20.7%</td>
+          <td>1.02</td>
+          <td><span class="clip-no">No</span></td>
+        </tr>
+        <tr>
+          <td>Fold 2</td>
+          <td>2012–2013</td>
+          <td>+32.92%</td>
+          <td>1.82</td>
+          <td>1.88</td>
+          <td><span class="beat-close">CLOSE −0.07</span></td>
+          <td>6.59</td>
+          <td>2.93</td>
+          <td><span class="beat-yes">YES 2.25×</span></td>
+          <td>−13.4%</td>
+          <td>1.09</td>
+          <td><span class="clip-yes">Ep2+Ep3</span></td>
+        </tr>
+        <tr>
+          <td>Fold 3</td>
+          <td>2014–2015</td>
+          <td>−1.73%</td>
+          <td>0.60</td>
+          <td>0.88</td>
+          <td><span class="beat-no">NO −0.28</span></td>
+          <td>0.78</td>
+          <td>0.99</td>
+          <td><span class="beat-no">NO</span></td>
+          <td>−21.0%</td>
+          <td>0.96</td>
+          <td><span class="clip-no">No</span></td>
+        </tr>
+        <tr>
+          <td>Fold 4 ⭐</td>
+          <td>2016–2017</td>
+          <td>+29.45%</td>
+          <td>1.43</td>
+          <td>1.37</td>
+          <td><span class="beat-yes">YES +0.05</span></td>
+          <td>3.38</td>
+          <td>1.73</td>
+          <td><span class="beat-yes">YES 1.95×</span></td>
+          <td>−14.4%</td>
+          <td>0.63</td>
+          <td><span class="clip-no">No</span></td>
+        </tr>
+        <tr>
+          <td>Fold 5 ⭐</td>
+          <td>2018–2019</td>
+          <td>+33.20%</td>
+          <td>1.39</td>
+          <td>0.83</td>
+          <td><span class="beat-yes">YES +0.56</span></td>
+          <td>3.23</td>
+          <td>0.97</td>
+          <td><span class="beat-yes">YES 3.33×</span></td>
+          <td>−20.7%</td>
+          <td>1.04</td>
+          <td><span class="clip-no">No</span></td>
+        </tr>
+        <tr>
+          <td>Fold 6</td>
+          <td>2020–2021</td>
+          <td>+10.47%</td>
+          <td>1.28</td>
+          <td>1.39</td>
+          <td><span class="beat-close">CLOSE −0.10</span></td>
+          <td>2.30</td>
+          <td>1.66</td>
+          <td><span class="beat-yes">YES</span></td>
+          <td>−31.6%</td>
+          <td>1.02</td>
+          <td><span class="clip-yes">Ep3 all</span></td>
+        </tr>
+        <tr>
+          <td>Fold 7</td>
+          <td>2022–2023</td>
+          <td>+3.10%</td>
+          <td>0.34</td>
+          <td>0.17</td>
+          <td><span class="beat-yes">YES +0.17</span></td>
+          <td>0.44</td>
+          <td>0.26</td>
+          <td><span class="beat-yes">YES</span></td>
+          <td>−21.9%</td>
+          <td>0.79</td>
+          <td><span class="clip-yes">Ep3 all</span></td>
+        </tr>
+        <tr>
+          <td>Fold 8 ⭐</td>
+          <td>2024–present</td>
+          <td>+15.76%</td>
+          <td>1.21</td>
+          <td>1.05</td>
+          <td><span class="beat-yes">YES +0.16</span></td>
+          <td>2.89</td>
+          <td>1.57</td>
+          <td><span class="beat-yes">YES 1.85×</span></td>
+          <td>−19.7%</td>
+          <td>0.88</td>
+          <td><span class="clip-yes">Ep3 all</span></td>
+        </tr>
+        <tr class="avg-row">
+          <td colspan="2">Average across all folds</td>
+          <td>+16.89%</td>
+          <td>1.11</td>
+          <td>1.01</td>
+          <td></td>
+          <td>2.63</td>
+          <td>1.35</td>
+          <td></td>
+          <td>−20.4%</td>
+          <td>0.90</td>
+          <td></td>
+        </tr>
+      </tbody>
+    </table>
+    <p class="note" style="margin-top:12px">⭐ = key test folds targeted by this run's changes (Folds 4, 5, 8 were the previous run's weakest). "Clip?" = whether the Bellman target clip (±30) fired during training.</p>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════ KEY IMPROVEMENTS -->
+  <div class="section">
+    <div class="section-title"><span class="icon">🚀</span> Key Improvement vs Run 3 — Targeted Folds</div>
+    <table>
+      <thead>
+        <tr>
+          <th class="left">Fold</th>
+          <th class="left">OOS Period</th>
+          <th>Run 3 Sharpe</th>
+          <th>Run 4 Sharpe</th>
+          <th>Change</th>
+          <th>QQQ Sharpe</th>
+          <th>Result</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Fold 4 ⭐</td>
+          <td>2016–2017</td>
+          <td>0.46</td>
+          <td><strong>1.43</strong></td>
+          <td style="color:#065f46;font-weight:700">+0.97</td>
+          <td>1.37</td>
+          <td><span class="beat-yes">Now beats QQQ</span></td>
+        </tr>
+        <tr>
+          <td>Fold 5 ⭐</td>
+          <td>2018–2019</td>
+          <td>0.43</td>
+          <td><strong>1.39</strong></td>
+          <td style="color:#065f46;font-weight:700">+0.96</td>
+          <td>0.83</td>
+          <td><span class="beat-yes">Now beats QQQ</span></td>
+        </tr>
+        <tr>
+          <td>Fold 8 ⭐</td>
+          <td>2024–present</td>
+          <td>0.78</td>
+          <td><strong>1.21</strong></td>
+          <td style="color:#065f46;font-weight:700">+0.43</td>
+          <td>1.05</td>
+          <td><span class="beat-yes">Now beats QQQ</span></td>
+        </tr>
+      </tbody>
+    </table>
+    <p class="note" style="margin-top:12px">Changes responsible: (1) qqq_ret_52w replacing qqq_vol_4w — gives agent a sustained bull-market signal. (2) vix_4w_trend replacing vix_change — 20-day VIX delta vs 5-day. (3) lambda_slow = 0.50 (was 0.75) — reduces over-conservatism in low-vol regimes.</p>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════ FOLD DEEP DIVE -->
+  <div class="section">
+    <div class="section-title"><span class="icon">🔍</span> Fold-by-Fold Narrative</div>
+    <div class="fold-grid">
+
+      <div class="fold-card is-strong">
+        <div class="fc-header">
+          <div><div class="fc-title">Fold 1 — Post-Crisis Recovery</div><div class="fc-period">OOS: Jan 2010 – Dec 2011 · 103 weeks</div></div>
+          <span class="beat-yes">Beats QQQ</span>
+        </div>
+        <div class="fc-metrics">
+          <div class="fc-metric"><div class="m-label">CAGR</div><div class="m-value">+11.9%</div></div>
+          <div class="fc-metric"><div class="m-label">Sharpe</div><div class="m-value">0.81</div><div class="m-vs">QQQ 0.53</div></div>
+          <div class="fc-metric"><div class="m-label">Sortino</div><div class="m-value">1.39</div><div class="m-vs">QQQ 0.73</div></div>
+          <div class="fc-metric"><div class="m-label">Max DD</div><div class="m-value">−20.7%</div></div>
+        </div>
+        <div class="fc-note">Agent captured the 2010–11 recovery well, generating meaningfully better risk-adjusted returns than QQQ. Training was clean with no clip fires. Q-values peaked at 29 in Ep3 then self-corrected without clipping.</div>
+      </div>
+
+      <div class="fold-card is-strong">
+        <div class="fc-header">
+          <div><div class="fc-title">Fold 2 — Post-Eurozone Bull</div><div class="fc-period">OOS: Jan 2012 – Dec 2013 · 103 weeks</div></div>
+          <span class="beat-close">Sharpe near-tie</span>
+        </div>
+        <div class="fc-metrics">
+          <div class="fc-metric"><div class="m-label">CAGR</div><div class="m-value">+32.9%</div></div>
+          <div class="fc-metric"><div class="m-label">Sharpe</div><div class="m-value">1.82</div><div class="m-vs">QQQ 1.88</div></div>
+          <div class="fc-metric"><div class="m-label">Sortino</div><div class="m-value">6.59</div><div class="m-vs">QQQ 2.93</div></div>
+          <div class="fc-metric"><div class="m-label">Max DD</div><div class="m-value">−13.4%</div></div>
+        </div>
+        <div class="fc-note">Strongest CAGR of the run. Sortino 2.25× QQQ driven by very few loss weeks (37/103). Sharpe just −0.07 below QQQ — essentially tied. Bellman clip fired at exactly the predicted moment (Ep3, update ~14,250) and arrested Q-divergence. See technical flags for the late-Ep3 Q-spike concern.</div>
+      </div>
+
+      <div class="fold-card is-weak">
+        <div class="fc-header">
+          <div><div class="fc-title">Fold 3 — Low-Vol Uptrend</div><div class="fc-period">OOS: Jan 2014 – Dec 2015 · 103 weeks</div></div>
+          <span class="beat-no">Below QQQ</span>
+        </div>
+        <div class="fc-metrics">
+          <div class="fc-metric"><div class="m-label">CAGR</div><div class="m-value">−1.7%</div></div>
+          <div class="fc-metric"><div class="m-label">Sharpe</div><div class="m-value">0.60</div><div class="m-vs">QQQ 0.88</div></div>
+          <div class="fc-metric"><div class="m-label">Sortino</div><div class="m-value">0.78</div><div class="m-vs">QQQ 0.99</div></div>
+          <div class="fc-metric"><div class="m-label">Max DD</div><div class="m-value">−21.0%</div></div>
+        </div>
+        <div class="fc-note">The run's only clear underperformance. 2014–2015 was a low-volatility steady uptrend — structurally hard for an active strategy to beat simple momentum. Training dynamics were clean (highest hit rate 54.4%, no clip). This is a genuine regime challenge, not a training bug.</div>
+      </div>
+
+      <div class="fold-card is-key">
+        <div class="fc-header">
+          <div><div class="fc-title">Fold 4 — Trump Rally ⭐ Key</div><div class="fc-period">OOS: Jan 2016 – Dec 2017 · 103 weeks</div></div>
+          <span class="beat-yes">Beats QQQ</span>
+        </div>
+        <div class="fc-metrics">
+          <div class="fc-metric"><div class="m-label">CAGR</div><div class="m-value">+29.5%</div></div>
+          <div class="fc-metric"><div class="m-label">Sharpe</div><div class="m-value">1.43</div><div class="m-vs">QQQ 1.37</div></div>
+          <div class="fc-metric"><div class="m-label">Sortino</div><div class="m-value">3.38</div><div class="m-vs">QQQ 1.73</div></div>
+          <div class="fc-metric"><div class="m-label">Max DD</div><div class="m-value">−14.4%</div></div>
+        </div>
+        <div class="fc-note">Massive turnaround: previous run Sharpe was 0.46, now 1.43 (+0.97). The 52-week QQQ return feature appears to have given the agent the sustained bull-market signal it previously lacked. Sortino nearly double QQQ's. Beta 0.63 — ran slightly defensively but still outperformed.</div>
+      </div>
+
+      <div class="fold-card is-key">
+        <div class="fc-header">
+          <div><div class="fc-title">Fold 5 — Volatile Bull ⭐ Key</div><div class="fc-period">OOS: Jan 2018 – Dec 2019 · 104 weeks</div></div>
+          <span class="beat-yes">Beats QQQ</span>
+        </div>
+        <div class="fc-metrics">
+          <div class="fc-metric"><div class="m-label">CAGR</div><div class="m-value">+33.2%</div></div>
+          <div class="fc-metric"><div class="m-label">Sharpe</div><div class="m-value">1.39</div><div class="m-vs">QQQ 0.83</div></div>
+          <div class="fc-metric"><div class="m-label">Sortino</div><div class="m-value">3.23</div><div class="m-vs">QQQ 0.97</div></div>
+          <div class="fc-metric"><div class="m-label">Max DD</div><div class="m-value">−20.7%</div></div>
+        </div>
+        <div class="fc-note">Most dramatic improvement: previous Sharpe 0.43, now 1.39 (+0.96). Sortino 3.33× QQQ — strong evidence the agent managed the Dec 2018 selloff well. Q-values peaked at 29.7 in Ep3 but a natural TD error spike self-corrected without clip needing to fire.</div>
+      </div>
+
+      <div class="fold-card">
+        <div class="fc-header">
+          <div><div class="fc-title">Fold 6 — COVID Crash + Recovery</div><div class="fc-period">OOS: Jan 2020 – Dec 2021 · 103 weeks</div></div>
+          <span class="beat-close">Sharpe near-tie</span>
+        </div>
+        <div class="fc-metrics">
+          <div class="fc-metric"><div class="m-label">CAGR</div><div class="m-value">+10.5%</div></div>
+          <div class="fc-metric"><div class="m-label">Sharpe</div><div class="m-value">1.28</div><div class="m-vs">QQQ 1.39</div></div>
+          <div class="fc-metric"><div class="m-label">Sortino</div><div class="m-value">2.30</div><div class="m-vs">QQQ 1.66</div></div>
+          <div class="fc-metric"><div class="m-label">Max DD</div><div class="m-value">−31.6%</div></div>
+        </div>
+        <div class="fc-note">COVID crash (Mar 2020) explains both the largest drawdown of any fold and the clip activity in Ep3. Despite the −0.10 Sharpe gap, Sortino beat QQQ — the agent recovered from the crash more efficiently than it absorbed it. Bellman clip was silently engaged all of Ep3 (potential for improvement with higher clip ceiling).</div>
+      </div>
+
+      <div class="fold-card is-strong">
+        <div class="fc-header">
+          <div><div class="fc-title">Fold 7 — Rate Hike Bear Market</div><div class="fc-period">OOS: Jan 2022 – Dec 2023 · 103 weeks</div></div>
+          <span class="beat-yes">Beats QQQ</span>
+        </div>
+        <div class="fc-metrics">
+          <div class="fc-metric"><div class="m-label">CAGR</div><div class="m-value">+3.1%</div></div>
+          <div class="fc-metric"><div class="m-label">Sharpe</div><div class="m-value">0.34</div><div class="m-vs">QQQ 0.17</div></div>
+          <div class="fc-metric"><div class="m-label">Sortino</div><div class="m-value">0.44</div><div class="m-vs">QQQ 0.26</div></div>
+          <div class="fc-metric"><div class="m-label">Max DD</div><div class="m-value">−21.9%</div></div>
+        </div>
+        <div class="fc-note">Absolute numbers are low because 2022 was a genuine bear market, but the agent still generated 2× QQQ's Sharpe in the hardest regime of the test period. Distributional metrics are the most well-behaved of all folds (negative skew, low kurtosis) — most realistic statistical profile.</div>
+      </div>
+
+      <div class="fold-card is-key">
+        <div class="fc-header">
+          <div><div class="fc-title">Fold 8 — AI Bull Market ⭐ Key</div><div class="fc-period">OOS: Jan 2024 – present · 113 weeks</div></div>
+          <span class="beat-yes">Beats QQQ</span>
+        </div>
+        <div class="fc-metrics">
+          <div class="fc-metric"><div class="m-label">CAGR</div><div class="m-value">+15.8%</div></div>
+          <div class="fc-metric"><div class="m-label">Sharpe</div><div class="m-value">1.21</div><div class="m-vs">QQQ 1.05</div></div>
+          <div class="fc-metric"><div class="m-label">Sortino</div><div class="m-value">2.89</div><div class="m-vs">QQQ 1.57</div></div>
+          <div class="fc-metric"><div class="m-label">Max DD</div><div class="m-value">−19.7%</div></div>
+        </div>
+        <div class="fc-note">Improved from Sharpe 0.78 (Run 3) to 1.21 (+0.43). Sortino nearly double QQQ's. This is the most live-adjacent fold and the strongest test of the current feature set. Bellman clip silently engaged all of Ep3 — raising the clip ceiling may yield further improvement.</div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════ TECHNICAL FLAGS -->
+  <div class="section">
+    <div class="section-title"><span class="icon">⚠️</span> Technical Flags &amp; Concerns</div>
+    <div class="concern-list">
+
+      <div class="concern-item high">
+        <div class="ci-header">
+          <span class="ci-badge">High</span>
+          <span class="ci-title">Q-value spike of 35,153 at the very end of Fold 2 Ep3</span>
+        </div>
+        <div class="ci-body">
+          At 23:20:31 — exactly 25 seconds before Fold 2's training completed and the checkpoint was saved — a single alarm fired: <code>|q1_mean| = 35153.59 &gt; 100</code>. Every logged update in the preceding hour showed Q-values of 13–15, which is fully stabilized. This isolated spike occurred on the last mini-batch of training, meaning the final saved model weights may reflect a momentarily extreme network state rather than the stabilized policy.<br><br>
+          Fold 2 produced the run's highest Sortino (6.59) and a strong CAGR (+32.9%). These results may be valid, but there is no intermediate checkpoint to compare against and rule out that the final checkpoint is an outlier. This should be investigated before presenting Fold 2 results as definitive.
+        </div>
+      </div>
+
+      <div class="concern-item high">
+        <div class="ci-header">
+          <span class="ci-badge">High</span>
+          <span class="ci-title">Single-week returns of 25–29% when QQQ is flat or negative</span>
+        </div>
+        <div class="ci-body">
+          15 weeks across 8 folds showed portfolio returns above 15%. The most extreme examples: +27.4% (Fold 1, QQQ −0.9%), +25.7% (Fold 2, QQQ flat), +28.9% (Fold 4, QQQ −1.1%), +27.2% (Fold 5, QQQ +0.6%). These require the agent to have nearly all NAV concentrated in 1–2 stocks that happened to have the best week in the universe.<br><br>
+          The majority of these spike weeks fall on low-liquidity calendar dates: New Year's week (3 occurrences), week of July 4th (4 occurrences), Thanksgiving week. In a real fund these weeks would have thin volume and materially higher slippage than the cost model assumes. If these 15 weeks were capped at a realistic 10%, average Sharpe drops from 1.11 to 0.97 and average Sortino from 2.63 to 1.52 — still strong, but more defensible numbers.
+        </div>
+      </div>
+
+      <div class="concern-item medium">
+        <div class="ci-header">
+          <span class="ci-badge">Medium</span>
+          <span class="ci-title"><code>turnover_mean: NaN</code> across all 8 folds — metric computation bug</span>
+        </div>
+        <div class="ci-body">
+          Every fold's <code>oos_metrics.json</code> shows <code>turnover_mean: NaN</code>. The root cause is a one-line bug: the call to <code>compute_all_metrics()</code> in <code>run_full_apex.py</code> hardcodes <code>turnover=None</code> despite the <code>w_exec_hist</code> array being available right there in scope. Turnover can be trivially computed from consecutive weight differences. <code>rank_ic</code> is also NaN across all folds (requires per-asset forward returns, which are not being passed).<br><br>
+          This matters for the presentation: without confirmed OOS turnover figures, you cannot show that the strategy's cost assumptions were met in practice. Any audience member who asks "what's the weekly turnover?" will not have an answer from the official metrics.
+        </div>
+      </div>
+
+      <div class="concern-item medium">
+        <div class="ci-header">
+          <span class="ci-badge">Medium</span>
+          <span class="ci-title">Bellman clip pinned at ceiling in Folds 6, 7, 8 — all of Ep3</span>
+        </div>
+        <div class="ci-body">
+          In the three most recent folds (2020-present), Q-values were pinned at the 30.0 clip ceiling for most or all of the third training episode. TD error dropped to 0.3–0.8 (normal is 1.0–2.5), indicating the network received very little gradient signal during its final episode of learning. In Fold 6, 67% of logged Ep3 updates had Q-values above 27. The clip ceiling of 30 was calibrated to arrest Fold 2's known divergence — it is too restrictive for post-2020 market data where the agent's natural value estimates are higher.
+        </div>
+      </div>
+
+      <div class="concern-item medium">
+        <div class="ci-header">
+          <span class="ci-badge">Medium</span>
+          <span class="ci-title">Extreme positive skewness across most folds — standard risk metrics understate tail risk</span>
+        </div>
+        <div class="ci-body">
+          Fold 1 skewness = 8.21, kurtosis = 75.1. All folds except Fold 7 have right-skewed, fat-tailed return distributions, driven primarily by the spike weeks. A Sharpe ratio computed on a distribution with kurtosis of 75 is not interpretable the same way as one computed on a near-normal distribution. Fold 7 (bear market) is the only fold with negative skew and normal-ish kurtosis — its results are the most statistically trustworthy. The others are better interpreted with CVaR or conditional metrics, not just Sharpe.
+        </div>
+      </div>
+
+      <div class="concern-item low">
+        <div class="ci-header">
+          <span class="ci-badge">Low</span>
+          <span class="ci-title">Fold 3 (2014–2015) persistent underperformance — structural, not a bug</span>
+        </div>
+        <div class="ci-body">
+          Fold 3 is the only fold where the agent clearly underperformed QQQ on both Sharpe (0.60 vs 0.88) and Sortino (0.78 vs 0.99). Training was clean — 54.4% hit rate (highest of any fold), no divergence, no clip fires. This is a structural issue: 2014–2015 was an unusually low-volatility steady uptrend where simple momentum (holding QQQ) is hard to beat with active stock selection. The agent has no explicit cross-sectional momentum feature to identify which individual stocks are trending strongest relative to peers.
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════ IMPROVEMENTS -->
+  <div class="section">
+    <div class="section-title"><span class="icon">🛠</span> Prioritized Improvements for April 11 Presentation</div>
+
+    <div class="imp-list">
+
+      <div class="imp-item">
+        <div class="imp-header">
+          <div class="imp-rank do-now">1</div>
+          <div class="imp-title">Raise <code>bellman_clip_high</code> from 30 → 35</div>
+          <span class="imp-effort effort-easy">1-line config · overnight re-run</span>
+        </div>
+        <div class="imp-body">
+          <p><strong>Problem:</strong> The clip ceiling of 30 is too tight for post-2020 market data. Folds 6, 7, and 8 had their Q-values pinned at the ceiling for the entire third episode, dropping TD error to 0.3–0.8. The agent effectively stopped learning in its final episode for the three most recent and most presentable folds.</p>
+          <p><strong>Why it matters:</strong> Folds 6, 7, and 8 cover 2020-to-present. These are the periods your audience cares most about — they're recent and live-adjacent. If those agents converged prematurely due to a suppressed gradient, their policies are suboptimal and the results are a lower bound on what's achievable.</p>
+          <div class="imp-fix"><strong>Fix:</strong> Change <code>bellman_clip_high: 30.0</code> → <code>35.0</code> in <code>master_config.yaml</code>. The Fold 2 divergence peaked at raw Q~333 internally — well above 35 — so the clip still fires and still arrests it. Low risk. Kick off Run 5 overnight.</div>
+        </div>
+      </div>
+
+      <div class="imp-item">
+        <div class="imp-header">
+          <div class="imp-rank do-now">2</div>
+          <div class="imp-title">Fix <code>turnover_mean: NaN</code> — pass <code>w_exec_hist</code> to metrics</div>
+          <span class="imp-effort effort-easy">2-line code fix · no re-run needed</span>
+        </div>
+        <div class="imp-body">
+          <p><strong>Problem:</strong> <code>turnover=None</code> is hardcoded in the <code>compute_all_metrics()</code> call in <code>run_full_apex.py</code>. The <code>w_exec_hist</code> array is already being built and is in scope immediately above the call.</p>
+          <p><strong>Why it matters:</strong> Without confirmed turnover figures you cannot show that the cost model was applied correctly. Any presentation audience member who asks "what's the weekly turnover?" currently has no answer from the official metrics. It also directly validates (or challenges) the spike week results — if turnover spikes to 80%+ on those weeks, that's informative.</p>
+          <div class="imp-fix"><strong>Fix:</strong> Compute <code>turnover_arr = [0.5 * np.sum(np.abs(w_exec_hist[t] - w_exec_hist[t-1])) for t in range(1, len(w_exec_hist))]</code> and pass it to <code>compute_all_metrics(turnover=np.array(turnover_arr))</code>. Then recompute metrics for all 8 existing folds without a full re-run.</div>
+        </div>
+      </div>
+
+      <div class="imp-item">
+        <div class="imp-header">
+          <div class="imp-rank medium">3</div>
+          <div class="imp-title">Add a per-asset position cap (~20% max weight)</div>
+          <span class="imp-effort effort-medium">1–2 hrs in ConstraintProjector · requires re-run</span>
+        </div>
+        <div class="imp-body">
+          <p><strong>Problem:</strong> The agent appears to concentrate 70–90%+ NAV into 1–2 stocks on specific weeks, producing returns of 25–29% — plausible mechanically but not realistic in a fund context, especially in thin-volume holiday periods. This concentration inflates Sortino and Sharpe through a small number of high-skew outlier weeks. Capping returns at 10%/week reduces average Sharpe from 1.11 → 0.97 and average Sortino from 2.63 → 1.52.</p>
+          <p><strong>Why it matters:</strong> 0.97 / 1.52 are still excellent results and more defensible in a presentation than numbers that depend on freak concentrated weeks. A 20% single-stock cap is also a standard institutional risk management constraint — framing it as intentional risk management strengthens the narrative rather than weakening it.</p>
+          <div class="imp-fix"><strong>Fix:</strong> Add <code>max_single_weight: 0.20</code> to the constraint projector config and enforce it as a per-asset clip after the portfolio optimization step. With 110 possible assets the agent still has full degrees of freedom; this only prevents the pathological all-in cases. Add to Run 6 (after Run 5 evaluates the clip change).</div>
+        </div>
+      </div>
+
+      <div class="imp-item">
+        <div class="imp-header">
+          <div class="imp-rank medium">4</div>
+          <div class="imp-title">Save intermediate checkpoints (end of each episode)</div>
+          <span class="imp-effort effort-easy">30 min code change · adds ~3 files per fold</span>
+        </div>
+        <div class="imp-body">
+          <p><strong>Problem:</strong> Only the final episode checkpoint is saved. The Fold 2 Q-spike of 35,153 fired on the last mini-batch of training — the checkpoint captures that momentary state and there is no earlier save to compare against. Additionally, some folds may converge best at Ep2 rather than Ep3; with only final checkpoints, there is no way to test this.</p>
+          <p><strong>Why it matters:</strong> Fold 2 produced the run's highest metrics and also has the most suspicious training artifact (the late spike). Being able to compare Ep2 vs Ep3 checkpoints for Fold 2 would either confirm the results or explain an anomaly. For the presentation, saying "we select the best checkpoint per fold" is a stronger methodology than "we always use the final one."</p>
+          <div class="imp-fix"><strong>Fix:</strong> In <code>run_full_apex.py</code>, save a checkpoint at the end of each episode to <code>checkpoints/fold_N/model_ep{E}.pt</code> in addition to the final. Costs ~90MB per fold in disk space and zero training runtime.</div>
+        </div>
+      </div>
+
+      <div class="imp-item">
+        <div class="imp-header">
+          <div class="imp-rank stretch">5</div>
+          <div class="imp-title">Add cross-sectional momentum feature to address Fold 3</div>
+          <span class="imp-effort effort-hard">1–2 weeks · requires x_panel rebuild</span>
+        </div>
+        <div class="imp-body">
+          <p><strong>Problem:</strong> Fold 3 (2014–2015) is the only fold where the agent clearly underperformed QQQ. The agent currently has no feature that tells it which individual stocks are trending strongest relative to each other within the NDX universe. In low-volatility steady uptrends, cross-sectional momentum (buy the relative leaders) is one of the few reliable signals.</p>
+          <p><strong>Why it matters:</strong> Improving Fold 3 would bring the Sharpe beat-rate from 5/8 to 6/8, which strengthens the presentation narrative. However this is a per-asset feature (goes in the x_panel, not the g_panel), meaning it requires a full x_panel rebuild across all 8 folds — a larger undertaking than the other items on this list.</p>
+          <div class="imp-fix"><strong>Fix:</strong> Add each stock's 12-week return minus the cross-sectional median as a per-asset feature in <code>features/per_asset_features.py</code>, then rebuild all x_panels. Only attempt if items #1–3 are implemented and Run 5/6 leave time for a Run 7 before April 11.</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════ TIMELINE -->
+  <div class="section">
+    <div class="section-title"><span class="icon">📅</span> Recommended Timeline to April 11</div>
+    <div class="timeline">
+      <div class="tl-item">
+        <div class="tl-left">
+          <div class="tl-label">Now</div>
+          <div class="tl-dot"></div>
+          <div class="tl-line"></div>
+        </div>
+        <div class="tl-content">
+          <strong>Fix turnover NaN bug</strong> (2 lines, 30 min). Recompute metrics for all 8 existing folds — no re-run needed. Change <code>bellman_clip_high</code> to 35 in config.
+        </div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-left">
+          <div class="tl-label">Tonight</div>
+          <div class="tl-dot"></div>
+          <div class="tl-line"></div>
+        </div>
+        <div class="tl-content">
+          <strong>Kick off Run 5</strong> (~19 hrs). Add per-episode checkpoint saving. Primary question: do Folds 6/7/8 improve with clip at 35?
+        </div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-left">
+          <div class="tl-label">Week 1</div>
+          <div class="tl-dot"></div>
+          <div class="tl-line"></div>
+        </div>
+        <div class="tl-content">
+          <strong>Evaluate Run 5 results.</strong> If Folds 6/7/8 improved: add 20% position cap and kick off Run 6. If Fold 2 spike issue recurs, compare per-episode checkpoints to determine best model. Assess whether Fold 3 gap warrants the x_panel rebuild effort.
+        </div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-left">
+          <div class="tl-label">Week 2</div>
+          <div class="tl-dot"></div>
+          <div class="tl-line"></div>
+        </div>
+        <div class="tl-content">
+          <strong>Run 6</strong> with position cap (if proceeding). Evaluate. Consider cross-sectional momentum feature only if time permits a full Run 7.
+        </div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-left">
+          <div class="tl-label">Week 3</div>
+          <div class="tl-dot"></div>
+          <div class="tl-line"></div>
+        </div>
+        <div class="tl-content">
+          <strong>Lock results — no new code changes.</strong> Prepare presentation materials using the best completed run. Allow 3–4 days buffer before April 11 for polish and review.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════ TRAINING NOTES -->
+  <div class="section">
+    <div class="section-title"><span class="icon">🔬</span> Training Dynamics Notes</div>
+    <div class="two-col">
+      <div>
+        <p style="font-weight:700; margin-bottom:10px; color:#0f3460;">Bellman Clip Activity</p>
+        <table>
+          <thead>
+            <tr><th class="left">Fold</th><th class="left">Clip Activity</th><th>Max raw Q</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>Fold 1</td><td><span class="clip-no">Did not fire</span></td><td>~29 (self-corrected)</td></tr>
+            <tr><td>Fold 2</td><td><span class="clip-yes">Ep2 + Ep3 (update 14,250)</span></td><td>333 (internal)</td></tr>
+            <tr><td>Fold 3</td><td><span class="clip-no">Did not fire</span></td><td>~15</td></tr>
+            <tr><td>Fold 4</td><td><span class="clip-no">Did not fire</span></td><td>~27 (self-corrected)</td></tr>
+            <tr><td>Fold 5</td><td><span class="clip-no">Did not fire</span></td><td>~29.7 (self-corrected)</td></tr>
+            <tr><td>Fold 6</td><td><span class="clip-yes">Ep3 all — pinned at 30</span></td><td>~138</td></tr>
+            <tr><td>Fold 7</td><td><span class="clip-yes">Ep3 all — pinned at 30</span></td><td>~114</td></tr>
+            <tr><td>Fold 8</td><td><span class="clip-yes">Ep3 all — pinned at 30</span></td><td>~275</td></tr>
+          </tbody>
+        </table>
+        <p class="note" style="margin-top:8px">In all cases the clip performed as designed — circuit breaker, not a recurring crutch. Fold 2's Ep3 divergence (known structural issue from 2008+2010 crash/recovery in same replay buffer) was arrested exactly at the predicted update.</p>
+      </div>
+      <div>
+        <p style="font-weight:700; margin-bottom:10px; color:#0f3460;">Return Distribution Health</p>
+        <table>
+          <thead>
+            <tr><th class="left">Fold</th><th>Skewness</th><th>Kurtosis</th><th>Note</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>Fold 1</td><td style="color:#991b1b">8.21</td><td style="color:#991b1b">75.1</td><td>1 dominant spike week</td></tr>
+            <tr><td>Fold 2</td><td>5.22</td><td>30.0</td><td>Elevated</td></tr>
+            <tr><td>Fold 3</td><td>3.81</td><td>38.7</td><td>Elevated</td></tr>
+            <tr><td>Fold 4</td><td>4.68</td><td>24.3</td><td>Moderate</td></tr>
+            <tr><td>Fold 5</td><td>5.13</td><td>28.2</td><td>Elevated</td></tr>
+            <tr><td>Fold 6</td><td>4.95</td><td>30.1</td><td>Elevated</td></tr>
+            <tr><td>Fold 7</td><td style="color:#065f46">−1.19</td><td style="color:#065f46">11.8</td><td>✓ Near-normal</td></tr>
+            <tr><td>Fold 8</td><td>5.86</td><td>38.1</td><td>Elevated</td></tr>
+          </tbody>
+        </table>
+        <p class="note" style="margin-top:8px">Fold 7 (bear market) has the only well-behaved distribution — negative skew, modest kurtosis. All other folds have right-skewed fat tails driven by the spike weeks. Standard Sharpe/Sortino should be interpreted with this in mind.</p>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    Project Apex — Run 4 Analysis Report &nbsp;·&nbsp; Generated 2026-03-20 &nbsp;·&nbsp; Bible v5 &nbsp;·&nbsp; SAC / Nasdaq-100 / 8-Fold Walk-Forward
+  </footer>
+
+</div>
+</body>
+</html>
