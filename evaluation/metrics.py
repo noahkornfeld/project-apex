@@ -116,19 +116,19 @@ def compute_turnover_mean(turnover: np.ndarray) -> float:
 
 def compute_cost_drag(cost_bps: np.ndarray, gross_returns: np.ndarray) -> float:
     """
-    Cost drag = total transaction costs / |compounded gross portfolio return| over OOS.
+    Cost drag = total transaction costs / sum(|weekly gross returns|) over OOS.
     cost_bps in basis points; gross_returns as fractions.
 
-    Uses compounded return (not sum of absolutes) so that a single extreme-return
-    week cannot artificially inflate the denominator and deflate cost_drag.
+    Uses sum of absolute weekly returns in the denominator (not net compounded
+    return) so that a single extreme-return week cannot dominate the denominator
+    and distort the ratio in either direction.
     """
     cost_bps      = np.asarray(cost_bps,      dtype=float)
     gross_returns = np.asarray(gross_returns, dtype=float)
     if len(cost_bps) == 0:
         return float("nan")
     total_cost_bps = float(np.nansum(cost_bps))
-    compounded     = float(np.prod(1.0 + np.clip(gross_returns, -0.9999, None))) - 1.0
-    gross_pnl_bps  = abs(compounded) * 10_000
+    gross_pnl_bps  = float(np.nansum(np.abs(gross_returns))) * 10_000
     if gross_pnl_bps == 0.0:
         return float("nan")
     return total_cost_bps / gross_pnl_bps

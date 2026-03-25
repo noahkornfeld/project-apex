@@ -29,6 +29,14 @@ ADV_WINDOW = 63       # §5.4
 VOL_WINDOW = 252      # 52 weeks ≈ 252 trading days  §5.4
 GAP_VOL_WINDOW = 252  # 52 weeks  §5.4
 
+# ADV multiplier applied to dates near major US market holidays.
+# Raises effective cost → agent voluntarily reduces concentration on thin-volume days.
+HOLIDAY_ADV_DISCOUNT = 0.50
+# Days before a holiday to start the window (catches pre-holiday run-up / early exits)
+HOLIDAY_PRE_DAYS  = 7
+# Days after a holiday to end the window (post-holiday thin volume)
+HOLIDAY_POST_DAYS = 7
+
 # Mapping from raw GICS sector codes to contiguous zero-based embedding indices.
 # Must match num_sectors in the model config (len = 12: 11 sectors + 1 unknown).
 GICS_TO_IDX: Dict[int, int] = {
@@ -46,6 +54,130 @@ GICS_TO_IDX: Dict[int, int] = {
     -1: 11,  # Unknown / inactive fallback
 }
 GICS_UNKNOWN_IDX = 11  # fallback index for unrecognised sector codes
+
+
+# ---------------------------------------------------------------------------
+# Holiday ADV discount helpers
+# ---------------------------------------------------------------------------
+
+def _us_market_holiday_dates(year: int) -> list:
+    """Return a list of datetime.date objects for the 7 major US market holidays.
+
+    Holidays covered:
+      1. New Year's Day       (Jan 1, observed)
+      2. Good Friday          (Friday before Easter, via Gregorian algorithm)
+      3. Memorial Day         (last Monday in May)
+      4. Independence Day     (Jul 4, observed)
+      5. Labor Day            (first Monday in September)
+      6. Thanksgiving Day     (4th Thursday in November)
+      7. Christmas Day        (Dec 25, observed)
+
+    "Observed" rule: Saturday holiday → prior Friday; Sunday → following Monday.
+    """
+    import datetime
+
+    def _observed(d: "datetime.date") -> "datetime.date":
+        if d.weekday() == 5:   # Saturday → Friday
+            return d - datetime.timedelta(days=1)
+        if d.weekday() == 6:   # Sunday → Monday
+            return d + datetime.timedelta(days=1)
+        return d
+
+    def _easter(y: int) -> "datetime.date":
+        """Anonymous Gregorian algorithm (Meeus/Jones/Butcher) for Easter Sunday."""
+        a = y % 19
+        b, c = divmod(y, 100)
+        d, e = divmod(b, 4)
+        f = (b + 8) // 25
+        g = (b - f + 1) // 3
+        h = (19 * a + b - d - g + 15) % 30
+        i, k = divmod(c, 4)
+        l = (32 + 2 * e + 2 * i - h - k) % 7
+        m = (a + 11 * h + 22 * l) // 451
+        n = h + l - 7 * m + 114
+        month, day = divmod(n, 31)
+        return datetime.date(y, month, day + 1)
+
+    holidays = []
+
+    # 1. New Year's Day (Jan 1, observed)
+    holidays.append(_observed(datetime.date(year, 1, 1)))
+
+    # 2. Good Friday (2 days before Easter Sunday)
+    easter = _easter(year)
+    holidays.append(easter - datetime.timedelta(days=2))
+
+    # 3. Memorial Day (last Monday in May)
+    d = datetime.date(year, 5, 31)
+    while d.weekday() != 0:
+        d -= datetime.timedelta(days=1)
+    holidays.append(d)
+
+    # 4. Independence Day (Jul 4, observed)
+    holidays.append(_observed(datetime.date(year, 7, 4)))
+
+    # 5. Labor Day (first Monday in September)
+    d = datetime.date(year, 9, 1)
+    while d.weekday() != 0:
+        d += datetime.timedelta(days=1)
+    holidays.append(d)
+
+    # 6. Thanksgiving Day (4th Thursday in November)
+    d = datetime.date(year, 11, 1)
+    thursdays = 0
+    while thursdays < 4:
+        if d.weekday() == 3:
+            thursdays += 1
+        if thursdays < 4:
+            d += datetime.timedelta(days=1)
+    holidays.append(d)
+
+    # 7. Christmas Day (Dec 25, observed)
+    holidays.append(_observed(datetime.date(year, 12, 25)))
+
+    return holidays
+
+
+def _holiday_adv_discount_array(dates_str: np.ndarray) -> np.ndarray:
+    """Return a [T] float32 multiplier: HOLIDAY_ADV_DISCOUNT for holiday-adjacent
+    panel dates, 1.0 elsewhere.
+
+    A date is holiday-adjacent if any major US market holiday falls:
+      - 1 to HOLIDAY_PRE_DAYS  calendar days in the future  (pre-holiday window), OR
+      - 1 to HOLIDAY_POST_DAYS calendar days in the past    (post-holiday window).
+
+    Covers the year range spanned by dates_str plus one year on each side to
+    handle cross-year edge cases.
+    """
+    import datetime
+
+    T = len(dates_str)
+
+    # Parse years covered; buffer ±1 year for cross-year windows
+    years = {int(str(d)[:4]) for d in dates_str}
+    years = years | {min(years) - 1, max(years) + 1}
+
+    # Collect all holiday dates as numpy datetime64 scalars
+    holiday_list = []
+    for y in years:
+        for h in _us_market_holiday_dates(y):
+            holiday_list.append(np.datetime64(h, "D"))
+    holidays_np = np.array(holiday_list, dtype="datetime64[D]")   # [H]
+
+    # Panel dates as datetime64[D]
+    panel_np = dates_str.astype("datetime64[D]")                  # [T]
+
+    # Vectorised delta: holidays_np[h] - panel_np[t]  →  [T, H]
+    # delta > 0: holiday is in the future; delta < 0: holiday is in the past
+    delta = (holidays_np[np.newaxis, :] - panel_np[:, np.newaxis]).astype(np.int64)  # [T, H]
+
+    pre_window  = (delta >= 1) & (delta <= HOLIDAY_PRE_DAYS)
+    post_window = (delta >= -HOLIDAY_POST_DAYS) & (delta <= -1)
+    in_window   = (pre_window | post_window).any(axis=1)          # [T] bool
+
+    discount = np.ones(T, dtype=np.float32)
+    discount[in_window] = HOLIDAY_ADV_DISCOUNT
+    return discount
 
 
 # ---------------------------------------------------------------------------
@@ -238,6 +370,17 @@ def build_market_data(
                 adv63_arr      [_idx] = adv63_arr      [_idx - 1]
                 vol_252_arr    [_idx] = vol_252_arr    [_idx - 1]
                 gap_vol_252_arr[_idx] = gap_vol_252_arr[_idx - 1]
+
+    # ------------------------------------------------------------------
+    # 4c. Holiday-week ADV discount
+    # Applies 0.50× ADV on dates within ±window of 7 major US market
+    # holidays.  Higher effective cost → agent voluntarily reduces
+    # concentration on thin-volume holiday periods during training,
+    # which addresses the spike-week anomaly (25–29% weekly returns on
+    # low-liquidity dates identified in Run 4 analysis).
+    # ------------------------------------------------------------------
+    _adv_discount = _holiday_adv_discount_array(dates_str)   # [T]
+    adv63_arr = adv63_arr * _adv_discount[:, np.newaxis]     # [T, K_max]
 
     # ------------------------------------------------------------------
     # 5. QQQ close and VIX from macro_features.parquet

@@ -1,0 +1,1426 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Project Apex - Study Guide</title>
+<style>
+  :root {
+    --navy: #0d1b2a;
+    --blue: #1b3a5c;
+    --accent: #2e86de;
+    --green: #10b981;
+    --red: #ef4444;
+    --gold: #f59e0b;
+    --light: #f0f4f8;
+    --white: #ffffff;
+    --gray: #64748b;
+    --card-shadow: 0 4px 20px rgba(0,0,0,0.12);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    background: var(--light);
+    color: var(--navy);
+    min-height: 100vh;
+  }
+
+  header {
+    background: linear-gradient(135deg, var(--navy) 0%, var(--blue) 100%);
+    color: white;
+    padding: 32px 40px;
+    text-align: center;
+  }
+
+  header h1 { font-size: 2.2rem; font-weight: 700; letter-spacing: -0.5px; }
+  header p { margin-top: 8px; color: #94b4d4; font-size: 1.05rem; }
+
+  nav {
+    background: var(--blue);
+    display: flex;
+    justify-content: center;
+    gap: 4px;
+    padding: 8px 16px;
+    flex-wrap: wrap;
+  }
+
+  nav button {
+    background: transparent;
+    border: none;
+    color: #94b4d4;
+    padding: 10px 20px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: 500;
+    transition: all 0.2s;
+  }
+
+  nav button:hover, nav button.active {
+    background: var(--accent);
+    color: white;
+  }
+
+  .section { display: none; padding: 40px; max-width: 1100px; margin: 0 auto; }
+  .section.active { display: block; }
+
+  h2 { font-size: 1.6rem; color: var(--navy); margin-bottom: 24px; border-left: 4px solid var(--accent); padding-left: 14px; }
+  h3 { font-size: 1.15rem; color: var(--blue); margin-bottom: 12px; }
+
+  /* ---- OVERVIEW ---- */
+  .overview-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; margin-bottom: 32px; }
+
+  .overview-card {
+    background: white;
+    border-radius: 12px;
+    padding: 24px;
+    box-shadow: var(--card-shadow);
+    border-top: 4px solid var(--accent);
+  }
+
+  .overview-card.green { border-top-color: var(--green); }
+  .overview-card.gold { border-top-color: var(--gold); }
+  .overview-card.red { border-top-color: var(--red); }
+
+  .overview-card .icon { font-size: 2rem; margin-bottom: 12px; }
+  .overview-card h3 { margin-bottom: 8px; }
+  .overview-card p { color: var(--gray); font-size: 0.95rem; line-height: 1.6; }
+
+  /* ---- FLOWCHART ---- */
+  .flow-container { background: white; border-radius: 12px; padding: 32px; box-shadow: var(--card-shadow); overflow-x: auto; }
+
+  .flow-diagram { display: flex; flex-direction: column; align-items: center; gap: 0; }
+
+  .flow-row { display: flex; align-items: center; justify-content: center; gap: 12px; width: 100%; }
+
+  .flow-box {
+    background: var(--accent);
+    color: white;
+    padding: 14px 22px;
+    border-radius: 10px;
+    text-align: center;
+    font-size: 0.88rem;
+    font-weight: 600;
+    min-width: 160px;
+    max-width: 200px;
+    line-height: 1.4;
+    box-shadow: 0 2px 8px rgba(46,134,222,0.3);
+  }
+
+  .flow-box.data { background: #7c3aed; }
+  .flow-box.train { background: #0891b2; }
+  .flow-box.test { background: var(--green); }
+  .flow-box.result { background: var(--gold); color: var(--navy); }
+  .flow-box.env { background: #dc2626; }
+  .flow-box.reward { background: #ea580c; }
+
+  .flow-arrow { font-size: 1.4rem; color: var(--gray); padding: 4px 0; }
+  .flow-arrow-right { font-size: 1.4rem; color: var(--gray); }
+
+  .flow-label { font-size: 0.78rem; color: var(--gray); text-align: center; margin-top: 4px; font-style: italic; }
+
+  /* ---- ARCHITECTURE DIAGRAM ---- */
+  .arch-diagram { background: white; border-radius: 12px; padding: 32px; box-shadow: var(--card-shadow); }
+
+  .arch-layer {
+    background: #f8fafc;
+    border: 2px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 16px 20px;
+    margin-bottom: 12px;
+    position: relative;
+  }
+
+  .arch-layer .layer-label {
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--gray);
+    margin-bottom: 10px;
+  }
+
+  .arch-layer.inputs { border-color: #7c3aed; }
+  .arch-layer.inputs .layer-label { color: #7c3aed; }
+  .arch-layer.encoder { border-color: #0891b2; }
+  .arch-layer.encoder .layer-label { color: #0891b2; }
+  .arch-layer.brain { border-color: var(--accent); }
+  .arch-layer.brain .layer-label { color: var(--accent); }
+  .arch-layer.output { border-color: var(--green); }
+  .arch-layer.output .layer-label { color: var(--green); }
+
+  .arch-nodes { display: flex; flex-wrap: wrap; gap: 10px; }
+
+  .arch-node {
+    padding: 8px 14px;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: white;
+  }
+
+  .arch-node.purple { background: #7c3aed; }
+  .arch-node.teal { background: #0891b2; }
+  .arch-node.blue { background: var(--accent); }
+  .arch-node.green { background: var(--green); }
+  .arch-node.orange { background: #ea580c; }
+
+  .arch-arrow { text-align: center; color: var(--gray); font-size: 1.2rem; margin: 4px 0; }
+
+  /* ---- FOLDS TABLE ---- */
+  .folds-table-wrap { background: white; border-radius: 12px; box-shadow: var(--card-shadow); overflow: hidden; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+  thead { background: var(--navy); color: white; }
+  thead th { padding: 14px 16px; text-align: left; font-weight: 600; }
+  tbody tr:nth-child(even) { background: #f8fafc; }
+  tbody tr:hover { background: #e8f0fe; }
+  tbody td { padding: 12px 16px; border-bottom: 1px solid #e2e8f0; }
+
+  .badge {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 0.78rem;
+    font-weight: 600;
+  }
+
+  .badge.bull { background: #d1fae5; color: #065f46; }
+  .badge.bear { background: #fee2e2; color: #991b1b; }
+  .badge.mixed { background: #fef3c7; color: #92400e; }
+  .badge.covid { background: #ede9fe; color: #4c1d95; }
+
+  /* ---- METRICS TABLE ---- */
+  .metrics-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
+
+  .metric-card {
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: var(--card-shadow);
+  }
+
+  .metric-card .metric-name { font-weight: 700; font-size: 1.05rem; color: var(--navy); margin-bottom: 6px; }
+  .metric-card .metric-formula { font-size: 0.82rem; color: var(--accent); font-family: monospace; margin-bottom: 8px; background: #f0f4f8; padding: 4px 8px; border-radius: 4px; }
+  .metric-card .metric-desc { font-size: 0.88rem; color: var(--gray); line-height: 1.5; }
+  .metric-card .metric-target { margin-top: 10px; font-size: 0.82rem; font-weight: 600; color: var(--green); }
+
+  /* ---- FLASHCARDS ---- */
+  .flashcard-controls { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; flex-wrap: wrap; gap: 12px; }
+
+  .flashcard-controls .fc-counter { color: var(--gray); font-size: 0.95rem; }
+
+  .fc-btn {
+    background: var(--accent);
+    color: white;
+    border: none;
+    padding: 10px 22px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: 600;
+    transition: background 0.2s;
+  }
+  .fc-btn:hover { background: #1a6bb5; }
+  .fc-btn.secondary { background: white; color: var(--accent); border: 2px solid var(--accent); }
+  .fc-btn.secondary:hover { background: var(--accent); color: white; }
+
+  .flashcard-scene {
+    width: 100%;
+    height: 280px;
+    perspective: 1000px;
+    cursor: pointer;
+    margin-bottom: 24px;
+  }
+
+  .flashcard {
+    width: 100%;
+    height: 100%;
+    position: relative;
+    transform-style: preserve-3d;
+    transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+    border-radius: 16px;
+  }
+
+  .flashcard.flipped { transform: rotateY(180deg); }
+
+  .fc-face {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    backface-visibility: hidden;
+    border-radius: 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 32px;
+    box-shadow: var(--card-shadow);
+    text-align: center;
+  }
+
+  .fc-front {
+    background: linear-gradient(135deg, var(--navy) 0%, var(--blue) 100%);
+    color: white;
+  }
+
+  .fc-back {
+    background: white;
+    color: var(--navy);
+    transform: rotateY(180deg);
+    border: 3px solid var(--accent);
+  }
+
+  .fc-front .term { font-size: 1.6rem; font-weight: 700; margin-bottom: 12px; }
+  .fc-front .hint { font-size: 0.85rem; color: #94b4d4; }
+  .fc-back .definition { font-size: 1.05rem; line-height: 1.7; color: var(--navy); }
+  .fc-back .example { margin-top: 14px; font-size: 0.88rem; color: var(--accent); font-style: italic; }
+
+  .fc-nav { display: flex; justify-content: center; gap: 12px; }
+
+  .fc-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: #cbd5e1;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  .fc-dot.active { background: var(--accent); }
+
+  .category-filter { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; }
+
+  .cat-btn {
+    padding: 6px 16px;
+    border-radius: 20px;
+    border: 2px solid #e2e8f0;
+    background: white;
+    cursor: pointer;
+    font-size: 0.85rem;
+    font-weight: 500;
+    transition: all 0.2s;
+    color: var(--gray);
+  }
+
+  .cat-btn:hover, .cat-btn.active { background: var(--accent); color: white; border-color: var(--accent); }
+
+  /* ---- QUIZ ---- */
+  .quiz-intro { background: white; border-radius: 12px; padding: 32px; box-shadow: var(--card-shadow); text-align: center; }
+  .quiz-intro h3 { font-size: 1.3rem; margin-bottom: 12px; }
+  .quiz-intro p { color: var(--gray); margin-bottom: 24px; line-height: 1.6; }
+
+  .quiz-card { background: white; border-radius: 12px; padding: 32px; box-shadow: var(--card-shadow); }
+
+  .quiz-progress {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+  }
+
+  .progress-bar {
+    flex: 1;
+    height: 8px;
+    background: #e2e8f0;
+    border-radius: 4px;
+    margin: 0 16px;
+    overflow: hidden;
+  }
+
+  .progress-fill {
+    height: 100%;
+    background: var(--accent);
+    border-radius: 4px;
+    transition: width 0.3s;
+  }
+
+  .quiz-q { font-size: 1.1rem; font-weight: 600; color: var(--navy); margin-bottom: 24px; line-height: 1.5; }
+
+  .quiz-options { display: grid; gap: 12px; }
+
+  .quiz-option {
+    background: #f8fafc;
+    border: 2px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 14px 18px;
+    cursor: pointer;
+    font-size: 0.95rem;
+    text-align: left;
+    transition: all 0.2s;
+    color: var(--navy);
+  }
+
+  .quiz-option:hover:not(.disabled) { border-color: var(--accent); background: #eff6ff; }
+  .quiz-option.correct { border-color: var(--green); background: #d1fae5; color: #065f46; }
+  .quiz-option.incorrect { border-color: var(--red); background: #fee2e2; color: #991b1b; }
+  .quiz-option.disabled { cursor: default; }
+
+  .quiz-feedback {
+    margin-top: 16px;
+    padding: 14px 18px;
+    border-radius: 10px;
+    font-size: 0.9rem;
+    line-height: 1.5;
+    display: none;
+  }
+
+  .quiz-feedback.show { display: block; }
+  .quiz-feedback.correct { background: #d1fae5; color: #065f46; border-left: 4px solid var(--green); }
+  .quiz-feedback.incorrect { background: #fee2e2; color: #991b1b; border-left: 4px solid var(--red); }
+
+  .quiz-next {
+    margin-top: 20px;
+    display: none;
+  }
+  .quiz-next.show { display: flex; justify-content: flex-end; }
+
+  .quiz-results { background: white; border-radius: 12px; padding: 40px; box-shadow: var(--card-shadow); text-align: center; display: none; }
+  .quiz-results.show { display: block; }
+
+  .score-circle {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--navy), var(--accent));
+    color: white;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 24px;
+    font-size: 2rem;
+    font-weight: 700;
+  }
+
+  .score-circle .score-label { font-size: 0.75rem; font-weight: 400; }
+
+  .missed-list { text-align: left; margin-top: 24px; }
+  .missed-item { background: #fff7ed; border-left: 4px solid var(--gold); padding: 12px 16px; border-radius: 6px; margin-bottom: 10px; font-size: 0.88rem; line-height: 1.5; }
+
+  /* ---- REWARD FORMULA ---- */
+  .formula-box {
+    background: var(--navy);
+    color: white;
+    border-radius: 12px;
+    padding: 28px 32px;
+    font-family: monospace;
+    font-size: 1.05rem;
+    margin-bottom: 24px;
+    line-height: 2;
+    box-shadow: var(--card-shadow);
+  }
+
+  .formula-highlight { color: var(--gold); }
+  .formula-green { color: #6ee7b7; }
+  .formula-red { color: #fca5a5; }
+
+  .formula-breakdown { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; }
+
+  .term-card {
+    background: white;
+    border-radius: 10px;
+    padding: 16px;
+    box-shadow: var(--card-shadow);
+    border-top: 3px solid var(--accent);
+  }
+
+  .term-card.neg { border-top-color: var(--red); }
+  .term-card .term-name { font-weight: 700; font-size: 0.95rem; color: var(--navy); margin-bottom: 6px; }
+  .term-card .term-role { font-size: 0.82rem; color: var(--gray); line-height: 1.5; }
+
+  /* Responsive */
+  @media (max-width: 600px) {
+    header { padding: 24px 20px; }
+    header h1 { font-size: 1.6rem; }
+    .section { padding: 24px 16px; }
+    nav button { padding: 8px 12px; font-size: 0.82rem; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Project Apex Study Guide</h1>
+  <p>Prepared for Bobcat Ventures Presentation &mdash; April 11, 2026 &nbsp;|&nbsp; Bates College</p>
+</header>
+
+<nav>
+  <button class="active" onclick="showSection('overview')">Overview</button>
+  <button onclick="showSection('architecture')">How It Works</button>
+  <button onclick="showSection('folds')">The 8 Folds</button>
+  <button onclick="showSection('metrics')">Key Metrics</button>
+  <button onclick="showSection('reward')">Reward Formula</button>
+  <button onclick="showSection('flashcards')">Flashcards</button>
+  <button onclick="showSection('quiz')">Quiz</button>
+</nav>
+
+<!-- ==================== OVERVIEW ==================== -->
+<div id="overview" class="section active">
+  <h2>What is Project Apex?</h2>
+
+  <div class="overview-grid">
+    <div class="overview-card">
+      <div class="icon">🤖</div>
+      <h3>An AI Portfolio Manager</h3>
+      <p>Apex is a reinforcement learning system that manages a portfolio of up to 100 Nasdaq-100 stocks. It decides weekly what to buy, hold, or sell — on its own, without human input.</p>
+    </div>
+    <div class="overview-card green">
+      <div class="icon">📈</div>
+      <h3>Goal: Beat QQQ</h3>
+      <p>QQQ is the standard Nasdaq-100 ETF. Apex's entire purpose is to outperform QQQ on a risk-adjusted basis — earning more return per unit of downside risk.</p>
+    </div>
+    <div class="overview-card gold">
+      <div class="icon">🎓</div>
+      <h3>Learns from 22 Years of History</h3>
+      <p>Apex trained on market data from 2004 to 2026, covering financial crises, bull markets, COVID, and everything in between. The hard lessons are baked in.</p>
+    </div>
+    <div class="overview-card red">
+      <div class="icon">🔒</div>
+      <h3>Realistic Constraints</h3>
+      <p>No short selling. No more than 20% in one stock. Real trading cost simulation. Sector caps. This is not a theoretical backtest — it models actual portfolio management.</p>
+    </div>
+  </div>
+
+  <h2>The Core Analogy</h2>
+  <div style="background:white; border-radius:12px; padding:28px; box-shadow:var(--card-shadow); font-size:1rem; line-height:1.8; color:var(--navy);">
+    <p>Imagine hiring a portfolio manager fresh out of school. You sit them in a room with 22 years of market history and say: <em>"Make decisions every week. When you do well, you get a bonus. When you lose money or take too much risk, you get penalized."</em> After millions of simulated weeks, that manager has developed real intuition about what works.</p>
+    <br>
+    <p>That is Apex. Except instead of a person, it is a neural network trained through a process called <strong>reinforcement learning</strong>. The "bonus and penalty" system is called the <strong>reward function</strong>. The weekly decision-making is called the <strong>policy</strong>.</p>
+    <br>
+    <p>Unlike most investing algorithms that follow rigid rules ("buy when RSI drops below 30"), Apex learned its own rules from experience. It discovered what patterns matter without being told explicitly.</p>
+  </div>
+
+  <h2 style="margin-top:32px;">The One-Sentence Pitch</h2>
+  <div style="background:linear-gradient(135deg,var(--navy),var(--blue)); color:white; border-radius:12px; padding:28px; box-shadow:var(--card-shadow); font-size:1.15rem; text-align:center; line-height:1.7; font-style:italic;">
+    "Project Apex is a reinforcement learning system that acts as an autonomous Nasdaq-100 portfolio manager, trained across 22 years of market history and tested rigorously on out-of-sample data to outperform QQQ on a risk-adjusted basis."
+  </div>
+</div>
+
+<!-- ==================== ARCHITECTURE ==================== -->
+<div id="architecture" class="section">
+  <h2>How the System Works</h2>
+
+  <div class="flow-container" style="margin-bottom:32px;">
+    <h3 style="margin-bottom:24px;">The High-Level Workflow</h3>
+    <div class="flow-diagram">
+      <div class="flow-row">
+        <div style="display:flex; flex-direction:column; align-items:center;">
+          <div class="flow-box data">Raw Market Data<br><small style="font-weight:400; font-size:0.78rem;">22 yrs of prices, volume, macro</small></div>
+          <div class="flow-label">100 Nasdaq-100 stocks</div>
+        </div>
+        <div class="flow-arrow-right">&#8594;</div>
+        <div style="display:flex; flex-direction:column; align-items:center;">
+          <div class="flow-box data">Feature Engineering<br><small style="font-weight:400; font-size:0.78rem;">25 per-asset + 20 global signals</small></div>
+          <div class="flow-label">momentum, vol, macro, etc.</div>
+        </div>
+        <div class="flow-arrow-right">&#8594;</div>
+        <div style="display:flex; flex-direction:column; align-items:center;">
+          <div class="flow-box train">Neural Network<br><small style="font-weight:400; font-size:0.78rem;">TCN encoder + attention</small></div>
+          <div class="flow-label">processes patterns</div>
+        </div>
+        <div class="flow-arrow-right">&#8594;</div>
+        <div style="display:flex; flex-direction:column; align-items:center;">
+          <div class="flow-box test">Portfolio Weights<br><small style="font-weight:400; font-size:0.78rem;">how much of each stock</small></div>
+          <div class="flow-label">output every Monday open</div>
+        </div>
+      </div>
+      <div class="flow-arrow">&#8595;</div>
+      <div class="flow-row">
+        <div style="display:flex; flex-direction:column; align-items:center;">
+          <div class="flow-box result">Performance Metrics<br><small style="font-weight:400; font-size:0.78rem;">CAGR, Sharpe, Sortino, MaxDD</small></div>
+          <div class="flow-label">how did we do vs QQQ?</div>
+        </div>
+        <div class="flow-arrow-right">&#8592;</div>
+        <div style="display:flex; flex-direction:column; align-items:center;">
+          <div class="flow-box env">Trading Environment<br><small style="font-weight:400; font-size:0.78rem;">simulate real costs + constraints</small></div>
+          <div class="flow-label">commissions, spreads, impact</div>
+        </div>
+        <div class="flow-arrow-right">&#8592;</div>
+        <div style="display:flex; flex-direction:column; align-items:center;">
+          <div class="flow-box reward">Reward Signal<br><small style="font-weight:400; font-size:0.78rem;">5-term reward function</small></div>
+          <div class="flow-label">guides the AI's learning</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="arch-diagram" style="margin-bottom:32px;">
+    <h3 style="margin-bottom:24px;">Neural Network Architecture</h3>
+    <p style="color:var(--gray); margin-bottom:20px; font-size:0.9rem;">The brain of Apex is a multi-layer neural network. Think of it as a funnel: raw messy market data goes in the top, and clean portfolio weights come out the bottom.</p>
+
+    <div class="arch-layer inputs">
+      <div class="layer-label">Layer 1: Inputs (What the AI Sees)</div>
+      <div class="arch-nodes">
+        <span class="arch-node purple">Price history (52 wks)</span>
+        <span class="arch-node purple">Momentum signals</span>
+        <span class="arch-node purple">Volatility measures</span>
+        <span class="arch-node purple">Volume trends</span>
+        <span class="arch-node purple">VIX / yield curve</span>
+        <span class="arch-node purple">QQQ performance</span>
+        <span class="arch-node purple">Current holdings</span>
+      </div>
+    </div>
+    <div class="arch-arrow">&#8595; processed by</div>
+
+    <div class="arch-layer encoder">
+      <div class="layer-label">Layer 2: Encoder (Finds Time Patterns)</div>
+      <div class="arch-nodes">
+        <span class="arch-node teal">TCN — Temporal Convolutional Network</span>
+        <span class="arch-node teal">Learns weekly return patterns</span>
+        <span class="arch-node teal">Reads 52-week price history per stock</span>
+      </div>
+      <p style="margin-top:10px; font-size:0.82rem; color:var(--gray);">Like reading a chart: the TCN recognizes that a stock breaking out to new highs after a long consolidation has historically meant something.</p>
+    </div>
+    <div class="arch-arrow">&#8595; combined with</div>
+
+    <div class="arch-layer brain">
+      <div class="layer-label">Layer 3: Cross-Asset Attention (Finds Relationships)</div>
+      <div class="arch-nodes">
+        <span class="arch-node blue">Attention mechanism</span>
+        <span class="arch-node blue">Learns: when tech rallies, what follows?</span>
+        <span class="arch-node blue">Finds sector-level correlations</span>
+        <span class="arch-node blue">Macro context integration</span>
+      </div>
+      <p style="margin-top:10px; font-size:0.82rem; color:var(--gray);">Like a portfolio manager noticing: "Semiconductors are leading; software names tend to follow 2-3 weeks later." The AI finds these patterns automatically.</p>
+    </div>
+    <div class="arch-arrow">&#8595; outputs</div>
+
+    <div class="arch-layer output">
+      <div class="layer-label">Layer 4: Output (The Decision)</div>
+      <div class="arch-nodes">
+        <span class="arch-node green">Portfolio weights for all 100 stocks</span>
+        <span class="arch-node green">Constrained: long-only, sum to 100%</span>
+        <span class="arch-node green">Executed at Monday market open</span>
+      </div>
+    </div>
+  </div>
+
+  <div style="background:white; border-radius:12px; padding:28px; box-shadow:var(--card-shadow);">
+    <h3 style="margin-bottom:16px;">The SAC Algorithm: Actor vs. Critic</h3>
+    <p style="color:var(--gray); margin-bottom:20px; font-size:0.9rem;">SAC (Soft Actor-Critic) is the reinforcement learning algorithm that trains the neural network. Here's what each part does:</p>
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px;">
+      <div style="background:#eff6ff; border-radius:10px; padding:20px; border-left:4px solid var(--accent);">
+        <div style="font-weight:700; font-size:1rem; color:var(--navy); margin-bottom:8px;">The Actor (Decision-Maker)</div>
+        <p style="font-size:0.88rem; color:var(--gray); line-height:1.6;">Looks at the current market state and outputs portfolio weights. This is the policy — the actual brain making trading decisions. It wants to act in ways the Critic will rate highly.</p>
+      </div>
+      <div style="background:#f0fdf4; border-radius:10px; padding:20px; border-left:4px solid var(--green);">
+        <div style="font-weight:700; font-size:1rem; color:var(--navy); margin-bottom:8px;">The Critic (Evaluator)</div>
+        <p style="font-size:0.88rem; color:var(--gray); line-height:1.6;">Estimates how good a given action is expected to be — not just now, but into the future. Two Critics are used simultaneously to prevent overconfidence. They learn by comparing predictions to actual outcomes.</p>
+      </div>
+    </div>
+    <div style="margin-top:16px; background:#fff7ed; border-radius:10px; padding:16px; border-left:4px solid var(--gold);">
+      <div style="font-weight:700; font-size:0.95rem; color:var(--navy); margin-bottom:6px;">The "Soft" Part: Entropy Bonus</div>
+      <p style="font-size:0.88rem; color:var(--gray); line-height:1.6;">The "soft" in SAC means the agent is also rewarded for being unpredictable and exploratory. This prevents it from getting stuck in a rigid strategy that works in calm markets but breaks down in volatility. The entropy level (called alpha) is tuned automatically during training.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== FOLDS ==================== -->
+<div id="folds" class="section">
+  <h2>The 8 Folds: Walk-Forward Testing</h2>
+
+  <div style="background:white; border-radius:12px; padding:28px; box-shadow:var(--card-shadow); margin-bottom:28px;">
+    <h3 style="margin-bottom:12px;">Why Does This Matter?</h3>
+    <p style="color:var(--gray); line-height:1.7; font-size:0.95rem;">The number one problem with AI trading systems is <strong>overfitting</strong>: the model memorizes historical patterns but fails in live markets. Walk-forward testing is the most rigorous defense against this. Each of the 8 folds trains on older data and tests on a completely new, unseen future period. If a strategy only works because it "memorized" history, the out-of-sample test will expose it immediately.</p>
+    <div style="margin-top:16px; display:flex; gap:16px; flex-wrap:wrap;">
+      <div style="flex:1; min-width:200px; background:#eff6ff; padding:14px 18px; border-radius:8px; font-size:0.88rem; line-height:1.6;"><strong>In-sample (training):</strong> The data the model learned from. Like studying for an exam.</div>
+      <div style="flex:1; min-width:200px; background:#f0fdf4; padding:14px 18px; border-radius:8px; font-size:0.88rem; line-height:1.6;"><strong>Out-of-sample (testing):</strong> Data the model never saw. Like taking the actual exam blind.</div>
+      <div style="flex:1; min-width:200px; background:#fff7ed; padding:14px 18px; border-radius:8px; font-size:0.88rem; line-height:1.6;"><strong>Embargo (4 weeks):</strong> A gap between train and test prevents "leakage" of recent signals.</div>
+    </div>
+  </div>
+
+  <div class="folds-table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Fold</th>
+          <th>Training Period</th>
+          <th>Test Period</th>
+          <th>Market Regime</th>
+          <th>Key Challenge</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Fold 1</strong></td>
+          <td>2005 – 2009</td>
+          <td>2010 – 2011</td>
+          <td><span class="badge mixed">Recovery</span></td>
+          <td>Can the agent adapt after training through a crash?</td>
+        </tr>
+        <tr>
+          <td><strong>Fold 2</strong></td>
+          <td>2006 – 2011</td>
+          <td>2012 – 2013</td>
+          <td><span class="badge bull">Bull Market</span></td>
+          <td>Full crisis + recovery in training; calm bull market test</td>
+        </tr>
+        <tr>
+          <td><strong>Fold 3</strong></td>
+          <td>2008 – 2013</td>
+          <td>2014 – 2015</td>
+          <td><span class="badge mixed">Choppy / Low Vol</span></td>
+          <td>Low volatility choppy market — hard for momentum strategies</td>
+        </tr>
+        <tr>
+          <td><strong>Fold 4</strong></td>
+          <td>2010 – 2015</td>
+          <td>2016 – 2017</td>
+          <td><span class="badge bull">Post-Recovery Bull</span></td>
+          <td>Steady grind upward; risk of over-trading</td>
+        </tr>
+        <tr>
+          <td><strong>Fold 5</strong></td>
+          <td>2012 – 2017</td>
+          <td>2018 – 2019</td>
+          <td><span class="badge mixed">Volatility Spike</span></td>
+          <td>Includes Q4 2018 crash (-20%); recovery in 2019</td>
+        </tr>
+        <tr>
+          <td><strong>Fold 6</strong></td>
+          <td>2014 – 2019</td>
+          <td>2020 – 2021</td>
+          <td><span class="badge covid">COVID / Recovery</span></td>
+          <td>Fastest crash in history followed by biggest bull run</td>
+        </tr>
+        <tr>
+          <td><strong>Fold 7</strong></td>
+          <td>2016 – 2021</td>
+          <td>2022 – 2023</td>
+          <td><span class="badge bear">Bear Market</span></td>
+          <td>QQQ fell 33%; hardest period for any long-only strategy</td>
+        </tr>
+        <tr>
+          <td><strong>Fold 8</strong></td>
+          <td>2018 – 2023</td>
+          <td>2024 – present</td>
+          <td><span class="badge bull">Recent Bull</span></td>
+          <td>AI-driven rally; concentration in mega-cap tech</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div style="background:white; border-radius:12px; padding:24px; box-shadow:var(--card-shadow); margin-top:24px;">
+    <h3 style="margin-bottom:16px;">What the Results Tell Us</h3>
+    <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(220px,1fr)); gap:16px;">
+      <div style="background:#d1fae5; border-radius:8px; padding:16px;">
+        <div style="font-weight:700; color:#065f46; margin-bottom:6px;">Sortino: 2.45 vs 0.92</div>
+        <div style="font-size:0.85rem; color:#047857; line-height:1.5;">Apex is significantly better at protecting against downside risk across all 8 periods.</div>
+      </div>
+      <div style="background:#dbeafe; border-radius:8px; padding:16px;">
+        <div style="font-weight:700; color:#1e40af; margin-bottom:6px;">Sharpe: 1.18 vs 1.01</div>
+        <div style="font-size:0.85rem; color:#1d4ed8; line-height:1.5;">Modestly better risk-adjusted return overall — beats QQQ on Sharpe in 4 of 8 folds.</div>
+      </div>
+      <div style="background:#fef3c7; border-radius:8px; padding:16px;">
+        <div style="font-weight:700; color:#92400e; margin-bottom:6px;">Excess CAGR: +17.4% avg</div>
+        <div style="font-size:0.85rem; color:#b45309; line-height:1.5;">Average excess return per year vs QQQ — ranges widely from fold to fold (honest signal).</div>
+      </div>
+      <div style="background:#fee2e2; border-radius:8px; padding:16px;">
+        <div style="font-weight:700; color:#991b1b; margin-bottom:6px;">Max Drawdown: ~-21.4%</div>
+        <div style="font-size:0.85rem; color:#b91c1c; line-height:1.5;">Comparable to QQQ, suggesting Apex doesn't take excessive risk even when outperforming.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== METRICS ==================== -->
+<div id="metrics" class="section">
+  <h2>Key Metrics Explained</h2>
+  <p style="color:var(--gray); margin-bottom:28px; font-size:0.95rem;">These are the numbers you'll need to discuss fluently with the panel. Know what each one measures and why it matters.</p>
+
+  <div class="metrics-grid">
+
+    <div class="metric-card">
+      <div class="metric-name">CAGR (Compound Annual Growth Rate)</div>
+      <div class="metric-formula">Total Return ^ (1/years) - 1</div>
+      <div class="metric-desc">The annualized return — how much the portfolio grew per year on average, compounded. Think of it as the single number that tells you "how fast did the portfolio grow?"</div>
+      <div class="metric-target">Apex target: Beat QQQ's CAGR after all costs</div>
+    </div>
+
+    <div class="metric-card">
+      <div class="metric-name">Sharpe Ratio</div>
+      <div class="metric-formula">Return / Total Volatility</div>
+      <div class="metric-desc">Risk-adjusted return using all volatility (both up and down moves count as "risk"). Higher is better. A Sharpe of 1.0+ is considered good; most hedge funds target 0.5-1.5.</div>
+      <div class="metric-target">Apex: 1.18 &nbsp;|&nbsp; QQQ: 1.01</div>
+    </div>
+
+    <div class="metric-card">
+      <div class="metric-name">Sortino Ratio</div>
+      <div class="metric-formula">Return / Downside Volatility only</div>
+      <div class="metric-desc">Like the Sharpe Ratio but smarter for investors: it only penalizes for bad (downside) volatility. Going up fast is not a risk — only going down is. This is the most important metric for Apex.</div>
+      <div class="metric-target">Apex: 2.45 &nbsp;|&nbsp; QQQ: 0.92 (strong outperformance)</div>
+    </div>
+
+    <div class="metric-card">
+      <div class="metric-name">Maximum Drawdown (MaxDD)</div>
+      <div class="metric-formula">Peak value to Trough value / Peak value</div>
+      <div class="metric-desc">The worst peak-to-trough loss the portfolio experienced. If you started at $100, dropped to $70, then recovered — that's a -30% max drawdown. Investors hate large drawdowns because they shake people out of the strategy.</div>
+      <div class="metric-target">Apex: ~-21.4% (comparable to QQQ)</div>
+    </div>
+
+    <div class="metric-card">
+      <div class="metric-name">Beta to QQQ</div>
+      <div class="metric-formula">Cov(Apex returns, QQQ returns) / Var(QQQ)</div>
+      <div class="metric-desc">How much Apex moves when QQQ moves. Beta = 1.0 means they move together. Beta = 0.8 means Apex moves 20% less than QQQ (more defensive). Apex targets 0.8-1.2 — actively managed but not detached from the market.</div>
+      <div class="metric-target">Target range: 0.8 to 1.2</div>
+    </div>
+
+    <div class="metric-card">
+      <div class="metric-name">Information Ratio (IR)</div>
+      <div class="metric-formula">Excess Return / Tracking Error</div>
+      <div class="metric-desc">How much extra return Apex earns per unit of "deviation" from QQQ. A high IR means the system generates consistent alpha (outperformance) rather than just getting lucky on a few big bets.</div>
+      <div class="metric-target">Separate from Sharpe — do not confuse them</div>
+    </div>
+
+    <div class="metric-card">
+      <div class="metric-name">Turnover</div>
+      <div class="metric-formula">Average weekly one-way trade size / portfolio value</div>
+      <div class="metric-desc">How much of the portfolio is traded each week. Lower turnover means lower transaction costs. Apex targets 5-15% weekly turnover — active enough to capture opportunities, not so active that costs eat returns.</div>
+      <div class="metric-target">Target: 5% to 15% weekly</div>
+    </div>
+
+    <div class="metric-card">
+      <div class="metric-name">Cost Drag</div>
+      <div class="metric-formula">Total trading costs / Gross return</div>
+      <div class="metric-desc">The percentage of raw returns lost to transaction costs (commission, bid-ask spread, market impact). Should stay under 50% of generated alpha — otherwise trading activity is destroying more value than the strategy creates.</div>
+      <div class="metric-target">Target: less than 50% of gross alpha</div>
+    </div>
+
+  </div>
+
+  <div style="background:white; border-radius:12px; padding:24px; box-shadow:var(--card-shadow); margin-top:28px;">
+    <h3 style="margin-bottom:16px;">Sharpe vs. Sortino: Why the Difference Matters</h3>
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px;">
+      <div style="padding:16px; background:#fee2e2; border-radius:10px;">
+        <div style="font-weight:700; margin-bottom:8px; color:#991b1b;">Sharpe (all volatility)</div>
+        <p style="font-size:0.88rem; color:#7f1d1d; line-height:1.6;">If Apex gains 8% in a week, Sharpe counts that as risk. But rallying is not a problem for investors — it's exactly what they want. Sharpe can unfairly penalize strategies that have strong upside moves.</p>
+      </div>
+      <div style="padding:16px; background:#d1fae5; border-radius:10px;">
+        <div style="font-weight:700; margin-bottom:8px; color:#065f46;">Sortino (downside only)</div>
+        <p style="font-size:0.88rem; color:#047857; line-height:1.6;">Sortino only penalizes losses. A Sortino of 2.45 vs QQQ's 0.92 means Apex generates returns with far less of the bad kind of risk. This is the headline number for this presentation.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== REWARD ==================== -->
+<div id="reward" class="section">
+  <h2>The Reward Function: How the AI Learns</h2>
+  <p style="color:var(--gray); margin-bottom:24px; font-size:0.95rem;">The reward function is the rulebook that tells the AI what "good" looks like each week. It has five components — three positive (you want more of these) and two negative (penalties for bad behavior). Understanding this shows you really understand what Apex is optimizing for.</p>
+
+  <div class="formula-box">
+    <div><span class="formula-highlight">Reward</span> = </div>
+    <div>&nbsp;&nbsp;<span class="formula-green">+ (excess return / market volatility)</span>&nbsp;&nbsp;&nbsp;← beat QQQ, scaled for market conditions</div>
+    <div>&nbsp;&nbsp;<span class="formula-green">+ downside protection bonus</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;← reward for avoiding big losses</div>
+    <div>&nbsp;&nbsp;<span class="formula-green">+ diversification bonus</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;← reward for holding multiple positions</div>
+    <div>&nbsp;&nbsp;<span class="formula-red">- transaction cost penalty</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;← discourages over-trading</div>
+    <div>&nbsp;&nbsp;<span class="formula-red">- portfolio volatility penalty</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;← discourages excessive risk-taking</div>
+  </div>
+
+  <div class="formula-breakdown">
+    <div class="term-card">
+      <div class="term-name">Excess Return / Market Vol</div>
+      <div class="term-role">The primary signal. Did we beat QQQ this week? Dividing by market volatility means the reward is bigger for the same outperformance when markets are calm — so the agent learns to be selective rather than leveraged.</div>
+    </div>
+    <div class="term-card">
+      <div class="term-name">Downside Protection Bonus</div>
+      <div class="term-role">When the agent avoids large losses, it gets a bonus. This is why the Sortino ratio is so strong — the reward function explicitly teaches the AI to care more about preventing drawdowns than maximizing raw returns.</div>
+    </div>
+    <div class="term-card">
+      <div class="term-name">Diversification Bonus</div>
+      <div class="term-role">Rewards the agent for holding many positions rather than concentrating in 1-2 stocks. Prevents the degenerate strategy of putting everything in NVIDIA and calling it a portfolio.</div>
+    </div>
+    <div class="term-card neg">
+      <div class="term-name">Transaction Cost Penalty</div>
+      <div class="term-role">Every trade costs money. The penalty here teaches the agent to trade only when the expected gain justifies the cost. Without this, the agent would over-trade and costs would eat the alpha.</div>
+    </div>
+    <div class="term-card neg">
+      <div class="term-name">Portfolio Volatility Penalty</div>
+      <div class="term-role">Controlled by lambda_slow = 0.50. Penalizes the agent for taking too much risk. This is why Apex has a better Sortino than Sharpe — it's literally been taught to hate downside risk more than it loves returns.</div>
+    </div>
+  </div>
+
+  <div style="background:white; border-radius:12px; padding:24px; box-shadow:var(--card-shadow); margin-top:28px;">
+    <h3 style="margin-bottom:16px;">The Bellman Equation (What the Critic Learns)</h3>
+    <p style="color:var(--gray); font-size:0.9rem; line-height:1.7;">The Critic estimates not just the immediate reward but the total expected future reward from any given state. It does this using the Bellman equation, which says: "The value of being here now equals the reward I get now, plus the discounted value of where I end up next."</p>
+    <div style="margin-top:16px; background:var(--navy); color:white; border-radius:10px; padding:18px 22px; font-family:monospace; font-size:0.95rem; line-height:1.8;">
+      Q(state, action) = reward_now + <span style="color:#6ee7b7">0.975</span> × Q(next_state, next_action)
+    </div>
+    <p style="margin-top:12px; color:var(--gray); font-size:0.88rem; line-height:1.6;">The 0.975 is the discount factor (gamma). It means the agent values a reward 4 weeks from now at 97.5% of its face value — very patient, appropriate for a long-horizon investor. The Bellman clip (±30) prevents the Q-values from exploding during volatile periods like 2008-09.</p>
+  </div>
+</div>
+
+<!-- ==================== FLASHCARDS ==================== -->
+<div id="flashcards" class="section">
+  <h2>Flashcards</h2>
+
+  <div class="category-filter">
+    <button class="cat-btn active" onclick="filterCards('all', this)">All Terms</button>
+    <button class="cat-btn" onclick="filterCards('rl', this)">RL / AI</button>
+    <button class="cat-btn" onclick="filterCards('finance', this)">Finance / Metrics</button>
+    <button class="cat-btn" onclick="filterCards('system', this)">System Design</button>
+  </div>
+
+  <div class="flashcard-controls">
+    <button class="fc-btn secondary" onclick="prevCard()">&#8592; Previous</button>
+    <span class="fc-counter" id="fc-counter">Card 1 of 24</span>
+    <button class="fc-btn" onclick="nextCard()">Next &#8594;</button>
+  </div>
+
+  <div class="flashcard-scene" onclick="flipCard()">
+    <div class="flashcard" id="flashcard">
+      <div class="fc-face fc-front">
+        <div class="term" id="fc-term">Loading...</div>
+        <div class="hint">Click to reveal definition</div>
+      </div>
+      <div class="fc-face fc-back">
+        <div class="definition" id="fc-definition">...</div>
+        <div class="example" id="fc-example"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="fc-nav" id="fc-dots"></div>
+
+  <div style="margin-top:16px; text-align:center; color:var(--gray); font-size:0.85rem;">Click the card to flip &nbsp;|&nbsp; Use arrows to navigate</div>
+</div>
+
+<!-- ==================== QUIZ ==================== -->
+<div id="quiz" class="section">
+  <h2>Knowledge Check Quiz</h2>
+
+  <div class="quiz-intro" id="quiz-intro">
+    <h3>Test Your Apex Knowledge</h3>
+    <p>15 questions covering all aspects of Project Apex — from technical concepts to metrics to the business case. Questions vary in difficulty to help you prepare for tough panel questions.</p>
+    <button class="fc-btn" onclick="startQuiz()">Start Quiz</button>
+  </div>
+
+  <div id="quiz-main" style="display:none;">
+    <div class="quiz-card">
+      <div class="quiz-progress">
+        <span id="q-counter" style="font-size:0.9rem; color:var(--gray); font-weight:600;">Q1 / 15</span>
+        <div class="progress-bar">
+          <div class="progress-fill" id="q-progress" style="width:0%"></div>
+        </div>
+        <span id="q-score-inline" style="font-size:0.9rem; color:var(--gray); font-weight:600;">Score: 0</span>
+      </div>
+
+      <div class="quiz-q" id="quiz-question">Question text here</div>
+      <div class="quiz-options" id="quiz-options"></div>
+      <div class="quiz-feedback" id="quiz-feedback"></div>
+      <div class="quiz-next" id="quiz-next">
+        <button class="fc-btn" onclick="nextQuestion()">Next Question &#8594;</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="quiz-results" id="quiz-results">
+    <div class="score-circle" id="score-display">
+      <div id="score-number">0/15</div>
+      <div class="score-label">Score</div>
+    </div>
+    <h3 id="score-message">Well done!</h3>
+    <p id="score-detail" style="color:var(--gray); margin-top:8px; margin-bottom:24px;"></p>
+    <button class="fc-btn" onclick="restartQuiz()">Retake Quiz</button>
+
+    <div class="missed-list" id="missed-list"></div>
+  </div>
+</div>
+
+<script>
+// ========================== NAVIGATION ==========================
+function showSection(id) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  event.target.classList.add('active');
+}
+
+// ========================== FLASHCARDS ==========================
+const allCards = [
+  {
+    term: "Reinforcement Learning (RL)",
+    category: "rl",
+    definition: "A type of machine learning where an AI agent learns by trial and error. It takes actions in an environment, receives rewards for good actions and penalties for bad ones, and gradually improves its strategy.",
+    example: "Apex learns to manage a portfolio the same way a child learns to ride a bike: by doing it, getting feedback, and adjusting."
+  },
+  {
+    term: "SAC (Soft Actor-Critic)",
+    category: "rl",
+    definition: "The specific reinforcement learning algorithm powering Apex. 'Actor' makes decisions, 'Critic' evaluates them. 'Soft' means the agent is also rewarded for staying exploratory — not locking into a single rigid strategy.",
+    example: "SAC is chosen because it's stable and handles continuous decisions (like portfolio weights) better than other RL algorithms."
+  },
+  {
+    term: "Actor Network",
+    category: "rl",
+    definition: "The part of the neural network that makes decisions. Given the current market state, the Actor outputs portfolio weights for every stock in the Nasdaq-100. This is the policy — the actual brain.",
+    example: "The Actor looks at all 25 features for each stock and outputs: 'Put 3% in AAPL, 2% in MSFT, 0% in INTC...'"
+  },
+  {
+    term: "Critic Network",
+    category: "rl",
+    definition: "The part of the neural network that evaluates decisions. It estimates how good a given action is expected to be — not just now, but over the long run. Two Critics run simultaneously to prevent overconfidence.",
+    example: "If the Actor decides to sell all tech stocks, the Critic scores how good that decision is likely to be over the next year."
+  },
+  {
+    term: "Policy",
+    category: "rl",
+    definition: "The strategy the agent follows: given any market state, what portfolio weights should I hold? The policy is what gets learned during training and deployed in live trading.",
+    example: "A simple human policy might be: 'When VIX is above 30, hold more cash.' Apex's policy is far more complex — learned, not hand-coded."
+  },
+  {
+    term: "Reward Function",
+    category: "rl",
+    definition: "The scoring system that tells the AI what 'good' looks like each week. Apex's reward has 5 terms: excess return, downside protection, diversification (all positive), minus transaction costs and portfolio volatility.",
+    example: "If Apex beats QQQ by 0.3% with low drawdown and low trading costs this week, it gets a high reward."
+  },
+  {
+    term: "Overfitting",
+    category: "rl",
+    definition: "When a model memorizes historical data so well that it performs great on past data but fails on new, unseen data. The cardinal sin in quantitative finance — the reason most backtests fail in real life.",
+    example: "A system trained and tested on the same data might look like it has 40% annual returns — until it goes live and loses money immediately."
+  },
+  {
+    term: "Walk-Forward Testing",
+    category: "system",
+    definition: "A testing methodology where you train on older data, test on a future period the model never saw, then step forward and repeat. Apex uses 8 folds this way to prove it works across diverse market regimes.",
+    example: "Train on 2005-2009, test on 2010-2011. Train on 2006-2011, test on 2012-2013. Step forward. Repeat 8 times."
+  },
+  {
+    term: "Out-of-Sample (OOS)",
+    category: "system",
+    definition: "Data the model never saw during training — the true test of whether the strategy works. The only OOS results that matter for investors are the 8 fold test periods in Apex.",
+    example: "If Apex only performed well in-sample (on training data) but not OOS, that would be evidence of overfitting."
+  },
+  {
+    term: "TCN (Temporal Convolutional Network)",
+    category: "rl",
+    definition: "A type of neural network designed to process time-series data — sequences of numbers over time. In Apex, the TCN reads 52 weeks of price and volume history per stock and extracts meaningful patterns.",
+    example: "Like reading a price chart: the TCN might notice 'this stock has been consolidating for 10 weeks and just broke out — historically that's meaningful.'"
+  },
+  {
+    term: "Attention Mechanism",
+    category: "rl",
+    definition: "A layer in the neural network that learns relationships between different stocks. It can discover that when semiconductors lead, software names tend to follow — without being programmed with this rule.",
+    example: "Think of it as the AI's ability to notice sector rotation patterns and inter-stock correlations dynamically."
+  },
+  {
+    term: "Replay Buffer",
+    category: "rl",
+    definition: "A memory bank that stores past transitions (state, action, reward, next state) from training. The model trains by randomly sampling from this buffer, which prevents it from over-learning recent events.",
+    example: "Without a replay buffer, the AI would only learn from the most recent weeks of data and forget everything it knew about 2008."
+  },
+  {
+    term: "Sharpe Ratio",
+    category: "finance",
+    definition: "Return divided by total volatility (both up and down moves counted as risk). Measures risk-adjusted performance. Apex: 1.18 vs QQQ: 1.01.",
+    example: "If two portfolios have the same return but Portfolio A has half the volatility, Portfolio A has a higher Sharpe and is the better risk-adjusted bet."
+  },
+  {
+    term: "Sortino Ratio",
+    category: "finance",
+    definition: "Like the Sharpe Ratio, but only penalizes downside volatility — going up fast is not counted as risk. This is Apex's standout metric: 2.45 vs QQQ's 0.92.",
+    example: "A portfolio that surges 20% in a month looks 'risky' by Sharpe. By Sortino it's fine — that's the good kind of volatility."
+  },
+  {
+    term: "CAGR",
+    category: "finance",
+    definition: "Compound Annual Growth Rate. The annualized return that accounts for compounding. If you invested $100 and had $161 after 5 years, your CAGR is about 10% per year.",
+    example: "Apex's goal is to generate a higher CAGR than QQQ after all transaction costs over the test period."
+  },
+  {
+    term: "Maximum Drawdown",
+    category: "finance",
+    definition: "The worst peak-to-trough percentage loss a portfolio experienced. The scariest number for investors — a large drawdown can cause investors to panic and sell at the worst time.",
+    example: "QQQ fell 33% in 2022. That's a max drawdown of -33% for that period. Apex's drawdown during the same period was comparable."
+  },
+  {
+    term: "Beta",
+    category: "finance",
+    definition: "How much a portfolio moves relative to its benchmark. Beta = 1.0 means perfectly correlated. Beta = 0.8 means 20% less volatile than the benchmark. Apex targets 0.8-1.2 (active but market-correlated).",
+    example: "If QQQ drops 10% and Apex drops 8%, Apex's beta is approximately 0.8."
+  },
+  {
+    term: "Information Ratio (IR)",
+    category: "finance",
+    definition: "Excess return (vs benchmark) divided by tracking error (how far you deviate from benchmark). Measures consistent alpha generation. Different from Sharpe — do not conflate them.",
+    example: "A manager who beats QQQ by 2% every year like clockwork has a higher IR than one who beats it by 5% one year and trails by 3% the next."
+  },
+  {
+    term: "Transaction Cost Model",
+    category: "system",
+    definition: "Apex models 4 real-world trading costs: (1) commission, (2) bid-ask spread, (3) market impact, (4) overnight gap risk. Most backtests ignore these — Apex does not.",
+    example: "Buying $1M of a thinly traded stock could cost $5,000-$15,000 in combined costs. That must be factored in before claiming any edge."
+  },
+  {
+    term: "Long-Only",
+    category: "system",
+    definition: "Apex can only buy stocks — no short selling (betting on stocks falling). This is by design: cleaner regulatory structure, simpler execution, and appropriate for a student-managed fund at this stage.",
+    example: "In a bear market, a long-only portfolio can only reduce risk by selling into cash or underweighting. It cannot profit from falling stocks."
+  },
+  {
+    term: "Bellman Equation",
+    category: "rl",
+    definition: "The mathematical foundation of how the Critic learns. It says the value of any state equals the immediate reward plus the discounted value of the next state. Apex uses a clip of ±30 to prevent Q-values from exploding.",
+    example: "Q(now) = reward_now + 0.975 × Q(next). The 0.975 discount factor means the agent is patient — values long-term rewards nearly as much as immediate ones."
+  },
+  {
+    term: "Discount Factor (Gamma)",
+    category: "rl",
+    definition: "Controls how much the agent values future rewards vs. immediate rewards. Apex uses gamma = 0.975, meaning a reward 4 weeks away is worth 97.5% of the same reward today. High gamma = patient, long-term investor.",
+    example: "A gamma of 0.5 would mean the agent barely cares about what happens next month. 0.975 is very patient."
+  },
+  {
+    term: "QQQ",
+    category: "finance",
+    definition: "An ETF (Exchange Traded Fund) that tracks the Nasdaq-100 index — the 100 largest non-financial companies on the Nasdaq. Apex's entire benchmark and raison d'etre: beat this passive investment.",
+    example: "If you just bought and held QQQ, you'd get the market return. Apex's job is to do better than that on a risk-adjusted basis."
+  },
+  {
+    term: "Feature Engineering",
+    category: "system",
+    definition: "The process of transforming raw data (price, volume) into meaningful signals the neural network can use. Apex computes 25 per-stock features and 20 global macro/benchmark features each week.",
+    example: "Raw price data is not useful directly. But '52-week return rank vs. all Nasdaq-100 peers' is a meaningful signal that encodes relative momentum."
+  }
+];
+
+let currentCards = [...allCards];
+let currentCardIndex = 0;
+let isFlipped = false;
+
+function filterCards(category, btn) {
+  document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  currentCards = category === 'all' ? [...allCards] : allCards.filter(c => c.category === category);
+  currentCardIndex = 0;
+  isFlipped = false;
+  document.getElementById('flashcard').classList.remove('flipped');
+  renderCard();
+}
+
+function renderCard() {
+  const card = currentCards[currentCardIndex];
+  document.getElementById('fc-term').textContent = card.term;
+  document.getElementById('fc-definition').textContent = card.definition;
+  document.getElementById('fc-example').textContent = card.example || '';
+  document.getElementById('fc-counter').textContent = `Card ${currentCardIndex + 1} of ${currentCards.length}`;
+
+  const dotsEl = document.getElementById('fc-dots');
+  dotsEl.innerHTML = '';
+  const maxDots = Math.min(currentCards.length, 15);
+  for (let i = 0; i < maxDots; i++) {
+    const dot = document.createElement('div');
+    dot.className = 'fc-dot' + (i === currentCardIndex ? ' active' : '');
+    const idx = i;
+    dot.onclick = () => { currentCardIndex = idx; isFlipped = false; document.getElementById('flashcard').classList.remove('flipped'); renderCard(); };
+    dotsEl.appendChild(dot);
+  }
+}
+
+function flipCard() {
+  isFlipped = !isFlipped;
+  document.getElementById('flashcard').classList.toggle('flipped', isFlipped);
+}
+
+function nextCard() {
+  currentCardIndex = (currentCardIndex + 1) % currentCards.length;
+  isFlipped = false;
+  document.getElementById('flashcard').classList.remove('flipped');
+  renderCard();
+}
+
+function prevCard() {
+  currentCardIndex = (currentCardIndex - 1 + currentCards.length) % currentCards.length;
+  isFlipped = false;
+  document.getElementById('flashcard').classList.remove('flipped');
+  renderCard();
+}
+
+renderCard();
+
+// ========================== QUIZ ==========================
+const quizQuestions = [
+  {
+    q: "Project Apex manages a portfolio of stocks in which index?",
+    options: ["S&P 500", "Dow Jones Industrial Average", "Nasdaq-100", "Russell 2000"],
+    correct: 2,
+    explanation: "Apex manages a portfolio within the Nasdaq-100, which contains the 100 largest non-financial companies on the Nasdaq exchange. QQQ is the benchmark ETF for this index."
+  },
+  {
+    q: "What does the 'Soft' in 'Soft Actor-Critic' mean?",
+    options: [
+      "The algorithm uses gentle gradient updates",
+      "The agent is also rewarded for staying exploratory and diverse in its decisions",
+      "The system avoids hard constraints on portfolio weights",
+      "The training process is slower and more careful than other methods"
+    ],
+    correct: 1,
+    explanation: "The 'soft' refers to an entropy bonus: the agent is rewarded for maintaining uncertainty and exploring different strategies, rather than collapsing into a single rigid approach. This makes the system more robust."
+  },
+  {
+    q: "What is the primary purpose of the Critic network in SAC?",
+    options: [
+      "To directly output portfolio weights",
+      "To screen stocks for inclusion in the portfolio",
+      "To estimate how good a given action is expected to be, now and in the future",
+      "To compute transaction costs for each trade"
+    ],
+    correct: 2,
+    explanation: "The Critic estimates the long-run value (expected cumulative reward) of any action taken in a given state. The Actor uses this feedback to improve its decisions over training."
+  },
+  {
+    q: "What is 'overfitting' and why does Apex's 8-fold structure defend against it?",
+    options: [
+      "When the model takes too many trades; folds limit turnover",
+      "When the model memorizes history but fails on new data; folds test on unseen future periods",
+      "When transaction costs exceed returns; folds track cost drag",
+      "When portfolio weights exceed allowed limits; folds enforce constraints"
+    ],
+    correct: 1,
+    explanation: "Overfitting is the cardinal sin in quant finance — a model looks great on training data but fails in real life. Each fold tests on a completely unseen future period, exposing overfitting immediately."
+  },
+  {
+    q: "Which metric does Apex excel at most significantly versus QQQ?",
+    options: [
+      "Maximum Drawdown (Apex: -5% vs QQQ: -21%)",
+      "Sortino Ratio (Apex: 2.45 vs QQQ: 0.92)",
+      "CAGR (Apex: 40% per year vs QQQ: 15%)",
+      "Beta (Apex: 0.1 vs QQQ: 1.0)"
+    ],
+    correct: 1,
+    explanation: "The Sortino Ratio of 2.45 vs QQQ's 0.92 is Apex's standout result. It shows the system is dramatically better at generating returns relative to downside risk — which is what investors actually care about."
+  },
+  {
+    q: "Why does the Sortino Ratio capture risk better than the Sharpe Ratio for this system?",
+    options: [
+      "Sortino is easier to compute and more widely recognized on Wall Street",
+      "Sharpe penalizes upside volatility, which is not a real risk for investors; Sortino only penalizes downside moves",
+      "Sortino ignores transaction costs, making it more favorable for active strategies",
+      "The Sharpe Ratio is only valid for fixed-income portfolios"
+    ],
+    correct: 1,
+    explanation: "Sharpe counts all volatility as risk, including big up-moves. Investors don't mind going up fast — they mind going down. Sortino only penalizes the bad volatility, giving a truer picture of risk-adjusted performance."
+  },
+  {
+    q: "How many features does Apex compute per stock each week?",
+    options: ["10", "15", "25", "45"],
+    correct: 2,
+    explanation: "Apex computes 25 per-asset features (momentum, volatility, volume, cross-sectional ranks, etc.) plus 20 global context features (macro, benchmark, portfolio state) for a total of 45 inputs per stock."
+  },
+  {
+    q: "What does the 4-week embargo between training and testing periods prevent?",
+    options: [
+      "The model from training on the same stocks multiple times",
+      "Leakage of recent signals — ensuring the model cannot see data close to the test period",
+      "Over-trading during the transition between folds",
+      "The portfolio from holding positions across fold boundaries"
+    ],
+    correct: 1,
+    explanation: "Without the embargo, features computed near the end of training could include information that 'bleeds into' the test period. The 4-week gap ensures clean separation."
+  },
+  {
+    q: "Which of the following is a PENALTY (negative term) in Apex's reward function?",
+    options: [
+      "Beating QQQ's weekly return",
+      "Holding more than 20 stocks",
+      "Generating high portfolio volatility",
+      "Having a Sortino ratio above 1.0"
+    ],
+    correct: 2,
+    explanation: "The reward function penalizes both high portfolio volatility (risk penalty) and transaction costs (trading cost penalty). This teaches the AI to trade selectively and avoid excessive risk."
+  },
+  {
+    q: "What is beta, and what range does Apex target?",
+    options: [
+      "A measure of diversification; Apex targets 50+ stocks",
+      "The discount factor in the Bellman equation; Apex uses 0.975",
+      "How much the portfolio moves relative to QQQ; Apex targets 0.8-1.2",
+      "The ratio of winning weeks to losing weeks; Apex targets above 50%"
+    ],
+    correct: 2,
+    explanation: "Beta measures correlation to the benchmark. A beta of 0.8-1.2 means Apex is actively managed but still moves broadly in line with the Nasdaq-100 — appropriate for a long-only fund."
+  },
+  {
+    q: "What is the key difference between the Sharpe Ratio and the Information Ratio?",
+    options: [
+      "Sharpe uses raw portfolio returns; Information Ratio uses excess returns over QQQ",
+      "Sharpe is used for stocks; Information Ratio is used for bonds",
+      "They are the same metric with different names",
+      "Information Ratio ignores volatility; Sharpe includes it"
+    ],
+    correct: 0,
+    explanation: "Sharpe = raw portfolio return / portfolio volatility. Information Ratio = excess return vs QQQ / tracking error vs QQQ. They measure different things — do not report one as the other."
+  },
+  {
+    q: "What is the TCN (Temporal Convolutional Network) responsible for?",
+    options: [
+      "Scanning for regulatory news about Nasdaq-100 stocks",
+      "Computing transaction costs for proposed trades",
+      "Processing weekly price/volume history to find time-series patterns per stock",
+      "Managing the position limits and sector caps"
+    ],
+    correct: 2,
+    explanation: "The TCN reads 52 weeks of historical data per stock and extracts meaningful patterns — breakouts, trends, mean-reversion signals — without being explicitly told what to look for."
+  },
+  {
+    q: "What happens during Fold 7 testing (2022-2023) and why is it the hardest fold?",
+    options: [
+      "The COVID crash occurs; liquidity dries up across all sectors",
+      "QQQ fell 33% in a bear market — the hardest environment for any long-only strategy",
+      "Data availability is limited because Apex's training data doesn't reach that far",
+      "The agent is required to trade more frequently, increasing costs dramatically"
+    ],
+    correct: 1,
+    explanation: "2022 was a brutal year for tech and growth stocks. QQQ fell 33%. A long-only Nasdaq-100 strategy cannot short or hedge aggressively — surviving this fold without catastrophic drawdown is a genuine test."
+  },
+  {
+    q: "What is the discount factor (gamma) in Apex, and what does it mean economically?",
+    options: [
+      "Gamma = 0.5; the agent only cares about the next week's return",
+      "Gamma = 0.975; the agent is patient and values long-term returns nearly as much as immediate ones",
+      "Gamma = 0.1; the agent is trained to maximize immediate returns above all",
+      "Gamma = 1.0; all future rewards are valued equally regardless of time"
+    ],
+    correct: 1,
+    explanation: "A gamma of 0.975 means a reward one week from now is worth 97.5% of a reward today. This trains the agent to be a patient, long-horizon investor — not a week-to-week trader."
+  },
+  {
+    q: "If a Bobcat Ventures panelist asks 'What's your edge over just buying QQQ?' — what is the BEST answer?",
+    options: [
+      "Apex uses more stocks than QQQ, so it is more diversified",
+      "Apex has a Sortino ratio 2.7x higher than QQQ, showing dramatically better downside risk management while staying in the same investable universe",
+      "Apex charges lower fees than QQQ's expense ratio",
+      "Apex was trained on more data than QQQ's index methodology uses"
+    ],
+    correct: 1,
+    explanation: "The core pitch is downside risk management. Apex is in the same universe as QQQ but generates returns with far less of the bad kind of volatility (Sortino 2.45 vs 0.92). That is a genuine, quantified edge."
+  }
+];
+
+let currentQ = 0;
+let score = 0;
+let answered = false;
+let missedQuestions = [];
+
+function startQuiz() {
+  document.getElementById('quiz-intro').style.display = 'none';
+  document.getElementById('quiz-main').style.display = 'block';
+  currentQ = 0;
+  score = 0;
+  missedQuestions = [];
+  renderQuestion();
+}
+
+function renderQuestion() {
+  const q = quizQuestions[currentQ];
+  answered = false;
+
+  document.getElementById('q-counter').textContent = `Q${currentQ + 1} / ${quizQuestions.length}`;
+  document.getElementById('q-progress').style.width = `${(currentQ / quizQuestions.length) * 100}%`;
+  document.getElementById('q-score-inline').textContent = `Score: ${score}`;
+  document.getElementById('quiz-question').textContent = q.q;
+
+  const optionsEl = document.getElementById('quiz-options');
+  optionsEl.innerHTML = '';
+  q.options.forEach((opt, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'quiz-option';
+    btn.textContent = opt;
+    btn.onclick = () => answerQuestion(i, btn);
+    optionsEl.appendChild(btn);
+  });
+
+  const fb = document.getElementById('quiz-feedback');
+  fb.className = 'quiz-feedback';
+  fb.textContent = '';
+
+  document.getElementById('quiz-next').className = 'quiz-next';
+}
+
+function answerQuestion(idx, btn) {
+  if (answered) return;
+  answered = true;
+
+  const q = quizQuestions[currentQ];
+  const options = document.querySelectorAll('.quiz-option');
+
+  options.forEach((o, i) => {
+    o.classList.add('disabled');
+    if (i === q.correct) o.classList.add('correct');
+  });
+
+  const fb = document.getElementById('quiz-feedback');
+
+  if (idx === q.correct) {
+    score++;
+    btn.classList.add('correct');
+    fb.className = 'quiz-feedback correct show';
+    fb.textContent = 'Correct! ' + q.explanation;
+  } else {
+    btn.classList.add('incorrect');
+    fb.className = 'quiz-feedback incorrect show';
+    fb.textContent = 'Not quite. ' + q.explanation;
+    missedQuestions.push({ q: q.q, correct: q.options[q.correct] });
+  }
+
+  document.getElementById('q-score-inline').textContent = `Score: ${score}`;
+  document.getElementById('quiz-next').className = 'quiz-next show';
+}
+
+function nextQuestion() {
+  currentQ++;
+  if (currentQ >= quizQuestions.length) {
+    showResults();
+  } else {
+    renderQuestion();
+  }
+}
+
+function showResults() {
+  document.getElementById('quiz-main').style.display = 'none';
+  const results = document.getElementById('quiz-results');
+  results.className = 'quiz-results show';
+
+  document.getElementById('score-number').textContent = `${score}/${quizQuestions.length}`;
+
+  const pct = score / quizQuestions.length;
+  let msg, detail;
+  if (pct === 1) {
+    msg = "Perfect score — you're ready to present!";
+    detail = "You have a strong command of every concept in this guide. Walk into that room with confidence.";
+  } else if (pct >= 0.8) {
+    msg = "Strong performance — nearly there!";
+    detail = "You've got the key concepts down. Review the ones you missed below and you'll be set for April 11.";
+  } else if (pct >= 0.6) {
+    msg = "Good foundation, keep studying.";
+    detail = "You understand the big picture. Focus your review on the metrics and RL concepts below.";
+  } else {
+    msg = "Keep at it — you'll get there.";
+    detail = "Review the flashcards section and try the quiz again. The concepts click with repetition.";
+  }
+
+  document.getElementById('score-message').textContent = msg;
+  document.getElementById('score-detail').textContent = detail;
+
+  const missedEl = document.getElementById('missed-list');
+  if (missedQuestions.length > 0) {
+    missedEl.innerHTML = '<h3 style="margin-bottom:14px; color:var(--navy);">Questions to Review:</h3>';
+    missedQuestions.forEach(m => {
+      missedEl.innerHTML += `<div class="missed-item"><strong>Q:</strong> ${m.q}<br><strong>Correct answer:</strong> ${m.correct}</div>`;
+    });
+  } else {
+    missedEl.innerHTML = '';
+  }
+}
+
+function restartQuiz() {
+  document.getElementById('quiz-results').className = 'quiz-results';
+  document.getElementById('quiz-intro').style.display = 'block';
+}
+</script>
+
+</body>
+</html>

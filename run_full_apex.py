@@ -546,14 +546,20 @@ def run_oos_eval(
     excess_arr = port_arr - qqq_arr
     nav        = np.cumprod(1.0 + port_arr)
 
+    # One-way turnover: 0.5 * sum(|w_t - w_{t-1}|) for each step after the first.
+    # Length is len(w_exec_hist)-1; compute_turnover_mean takes the mean over
+    # however many observations it receives, so the 1-step shorter length is fine.
+    w_stack = np.stack(w_exec_hist).astype(np.float64)   # [W, K_max]
+    turnover_arr = 0.5 * np.sum(np.abs(np.diff(w_stack, axis=0)), axis=1)  # [W-1]
+
     metrics = compute_all_metrics(
         nav               = nav,
         excess_returns    = excess_arr,
         qqq_returns       = qqq_arr,
         portfolio_returns = port_arr,
-        turnover          = None,
+        turnover          = turnover_arr,
         cost_bps          = np.array(cost_bps_list, dtype=np.float64),
-        w_exec            = np.stack(w_exec_hist).astype(np.float64),
+        w_exec            = w_stack,
         asset_returns     = None,
     )
     return metrics, port_arr, qqq_arr, dates_list
@@ -937,6 +943,23 @@ def main(run_name: str = "", fold_only: int = 0) -> None:
                         logger              = logger,
                         rng                 = rng,
                         id_mapper           = id_mapper,
+                    )
+
+                    # ── Per-episode checkpoint ────────────────────────────────
+                    ep_ckpt_path = ckpt_dir / f"model_ep{episode_id}.pt"
+                    torch.save(
+                        {
+                            "fold":            fold_id,
+                            "episode":         episode_id,
+                            "model_state":     model.state_dict(),
+                            "log_alpha":       trainer.log_alpha.item(),
+                            "update_step":     trainer.update_step,
+                            "batch_size_used": current_batch_size,
+                        },
+                        ep_ckpt_path,
+                    )
+                    logger.info(
+                        f"  [ckpt] Episode {episode_id} checkpoint saved: {ep_ckpt_path}"
                     )
 
                 # All episodes completed successfully

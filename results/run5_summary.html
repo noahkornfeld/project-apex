@@ -1,0 +1,882 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Project Apex — Run 5 Summary</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:        #0d1117;
+    --surface:   #161b22;
+    --surface2:  #21262d;
+    --border:    #30363d;
+    --text:      #c9d1d9;
+    --muted:     #8b949e;
+    --accent:    #58a6ff;
+    --green:     #3fb950;
+    --green-dim: #152a1e;
+    --green-mid: #1f4a2b;
+    --red:       #f85149;
+    --red-dim:   #3d1a18;
+    --red-mid:   #4a1f1d;
+    --yellow:    #d29922;
+    --yellow-dim:#2e2208;
+    --yellow-mid:#3d2e0a;
+    --star:      #e3b341;
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    font-size: 14px;
+    line-height: 1.6;
+    padding-bottom: 60px;
+  }
+
+  /* ─────────────────────────────────────────────
+     Header
+  ───────────────────────────────────────────── */
+  .header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 18px 36px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+  .header-title {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--accent);
+    letter-spacing: -0.3px;
+  }
+  .header-subtitle {
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 3px;
+    font-weight: 400;
+  }
+  .header-meta {
+    display: flex;
+    gap: 28px;
+    flex-wrap: wrap;
+  }
+  .header-stat { text-align: right; }
+  .header-stat .label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
+  .header-stat .value { font-size: 16px; font-weight: 700; color: var(--text); }
+
+  /* ─────────────────────────────────────────────
+     Verdict Banner
+  ───────────────────────────────────────────── */
+  .verdict-banner {
+    margin: 20px 36px 0;
+    background: var(--yellow-dim);
+    border: 1px solid var(--yellow);
+    border-radius: 8px;
+    padding: 13px 18px;
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    font-size: 13.5px;
+    color: #e8c96a;
+    line-height: 1.55;
+  }
+  .verdict-banner .icon { font-size: 16px; flex-shrink: 0; margin-top: 2px; }
+  .verdict-banner strong { font-weight: 700; color: #f0d070; }
+
+  /* ─────────────────────────────────────────────
+     Sections
+  ───────────────────────────────────────────── */
+  .section { margin: 26px 36px 0; }
+
+  .section-title {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 11px;
+    padding-bottom: 7px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  /* ─────────────────────────────────────────────
+     Tables (shared)
+  ───────────────────────────────────────────── */
+  .tbl-wrap {
+    overflow-x: auto;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+  }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  thead th {
+    background: var(--surface2);
+    color: var(--muted);
+    font-weight: 700;
+    text-transform: uppercase;
+    font-size: 10.5px;
+    letter-spacing: 0.7px;
+    padding: 9px 14px;
+    text-align: right;
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+  }
+  thead th:first-child { text-align: left; }
+  tbody tr { border-bottom: 1px solid var(--border); }
+  tbody tr:last-child { border-bottom: none; }
+  tbody td {
+    padding: 9px 14px;
+    text-align: right;
+    color: var(--text);
+    white-space: nowrap;
+  }
+  tbody td:first-child { text-align: left; }
+  tbody tr:hover { background: rgba(255,255,255,0.03); }
+
+  /* Row colours */
+  .row-green  { background: var(--green-dim) !important; }
+  .row-red    { background: var(--red-dim)   !important; }
+  .row-yellow { background: var(--yellow-dim)!important; }
+  .row-green:hover  { background: var(--green-mid) !important; }
+  .row-red:hover    { background: var(--red-mid)   !important; }
+  .row-yellow:hover { background: var(--yellow-mid)!important; }
+
+  .row-star td:first-child::after { content: " ★"; color: var(--star); }
+
+  .row-avg td {
+    background: var(--surface2) !important;
+    font-weight: 700;
+    border-top: 2px solid var(--border);
+  }
+  .row-avg:hover td { background: var(--surface2) !important; }
+
+  /* Value colours */
+  .pos        { color: var(--green); }
+  .neg        { color: var(--red);   }
+  .neu        { color: var(--muted); }
+  .beat-yes   { color: var(--green);  font-weight: 700; }
+  .beat-no    { color: var(--red);    font-weight: 700; }
+  .beat-close { color: var(--yellow); font-weight: 700; }
+  .delta-pos  { color: var(--green); }
+  .delta-neg  { color: var(--red);   }
+
+  .tbl-note {
+    color: var(--muted);
+    font-size: 11.5px;
+    margin-top: 7px;
+    line-height: 1.5;
+  }
+
+  /* ─────────────────────────────────────────────
+     Experiment Verdict — 3-card grid
+  ───────────────────────────────────────────── */
+  .verdict-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+    margin-bottom: 14px;
+  }
+  .verdict-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .verdict-card.vc-yes     { border-top: 3px solid var(--green);  }
+  .verdict-card.vc-neutral { border-top: 3px solid var(--muted);  }
+  .verdict-card.vc-no      { border-top: 3px solid var(--red);    }
+
+  .vc-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .vc-pill {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 12px;
+    font-size: 10.5px;
+    font-weight: 800;
+    letter-spacing: 0.6px;
+    flex-shrink: 0;
+  }
+  .pill-yes  { background: var(--green-dim); color: var(--green); border: 1px solid var(--green); }
+  .pill-neu  { background: var(--surface2);  color: var(--muted); border: 1px solid var(--border); }
+  .pill-no   { background: var(--red-dim);   color: var(--red);   border: 1px solid var(--red); }
+
+  .vc-fold-label {
+    font-size: 13.5px;
+    font-weight: 700;
+    color: var(--text);
+  }
+  .vc-fold-label span {
+    font-size: 11px;
+    font-weight: 400;
+    color: var(--muted);
+    margin-left: 4px;
+  }
+
+  .vc-metrics {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .vc-metric { }
+  .vc-metric .m-label {
+    font-size: 10px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .vc-metric .m-val {
+    font-size: 13px;
+    font-weight: 700;
+  }
+  .vc-metric .m-delta {
+    font-size: 11px;
+    font-weight: 400;
+    margin-left: 4px;
+  }
+
+  .vc-qval {
+    font-size: 12px;
+    color: var(--muted);
+    background: var(--surface2);
+    border-radius: 5px;
+    padding: 6px 10px;
+    line-height: 1.5;
+  }
+  .vc-qval strong { color: var(--text); }
+
+  .vc-desc {
+    font-size: 12px;
+    color: var(--muted);
+    line-height: 1.55;
+  }
+
+  .verdict-conclusion {
+    background: var(--yellow-dim);
+    border: 1px solid var(--yellow);
+    border-radius: 8px;
+    padding: 13px 18px;
+    font-size: 13px;
+    color: #e8c96a;
+    line-height: 1.55;
+  }
+  .verdict-conclusion strong { color: #f0d070; }
+
+  /* ─────────────────────────────────────────────
+     Flags Table — allow text wrapping
+  ───────────────────────────────────────────── */
+  .flags-table td { white-space: normal !important; vertical-align: top; }
+  .flags-table td:nth-child(2),
+  .flags-table td:nth-child(3) { white-space: nowrap !important; text-align: center; }
+  .flag-name { font-weight: 700; color: var(--text); display: block; margin-bottom: 3px; }
+  .flag-desc { font-size: 12px; color: var(--muted); line-height: 1.55; }
+  .sev-red    { color: var(--red);    font-weight: 700; font-size: 12px; }
+  .sev-yellow { color: var(--yellow); font-weight: 700; font-size: 12px; }
+  .action-text { font-size: 12px; color: var(--muted); text-align: left !important; }
+
+  /* ─────────────────────────────────────────────
+     Recommendations
+  ───────────────────────────────────────────── */
+  .recs {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+  }
+  .rec-item {
+    display: flex;
+    gap: 14px;
+    align-items: flex-start;
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--border);
+  }
+  .rec-item:last-child { border-bottom: none; }
+  .rec-num {
+    flex-shrink: 0;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: var(--bg);
+    font-weight: 800;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: 2px;
+  }
+  .rec-body { line-height: 1.6; }
+  .rec-body strong { color: var(--text); font-size: 13.5px; display: block; margin-bottom: 3px; }
+  .rec-body p { color: var(--muted); font-size: 12.5px; }
+
+  /* ─────────────────────────────────────────────
+     Cross-Run Tracker
+  ───────────────────────────────────────────── */
+  .run-current td { background: rgba(88,166,255,0.06) !important; }
+  .run-current td:first-child { color: var(--accent); font-weight: 700; }
+  .run-current:hover td { background: rgba(88,166,255,0.10) !important; }
+  .note-asterisk { color: var(--muted); font-size: 11.5px; font-style: italic; margin-top: 7px; line-height: 1.5; }
+  /* Notes column wraps */
+  .tracker-table td:last-child { white-space: normal !important; min-width: 160px; font-size: 12px; }
+  .tracker-table td:nth-child(3) { white-space: normal !important; min-width: 120px; font-size: 12px; color: var(--muted); }
+
+  /* ─────────────────────────────────────────────
+     Footer
+  ───────────────────────────────────────────── */
+  .footer {
+    margin: 36px 36px 0;
+    padding-top: 14px;
+    border-top: 1px solid var(--border);
+    color: var(--muted);
+    font-size: 11.5px;
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════
+     HEADER
+══════════════════════════════════════════ -->
+<div class="header">
+  <div>
+    <div class="header-title">Project Apex — Run 5 Summary</div>
+    <div class="header-subtitle">bellman_clip_high = 50 &nbsp;·&nbsp; Holiday ADV Discount (0.50×) &nbsp;·&nbsp; Per-Episode Checkpoints</div>
+  </div>
+  <div class="header-meta">
+    <div class="header-stat">
+      <div class="label">Completed</div>
+      <div class="value" style="font-size:13px; margin-top:2px;">2026-03-23 14:55</div>
+    </div>
+    <div class="header-stat">
+      <div class="label">Runtime</div>
+      <div class="value">18.83 h</div>
+    </div>
+    <div class="header-stat">
+      <div class="label">Folds</div>
+      <div class="value">8 / 8</div>
+    </div>
+    <div class="header-stat">
+      <div class="label">Avg Sharpe</div>
+      <div class="value" style="color:var(--green);">1.18</div>
+    </div>
+    <div class="header-stat">
+      <div class="label">Beat QQQ</div>
+      <div class="value" style="color:var(--yellow);">4 / 8</div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     VERDICT BANNER
+══════════════════════════════════════════ -->
+<div class="verdict-banner">
+  <span class="icon">⚠</span>
+  <div>
+    <strong>Mixed result — marginal improvement on average, but with significant fold-level regressions.</strong>
+    &nbsp;clip=50 lifts avg Sharpe 1.11 → 1.18 and dramatically fixes Fold 7 (+0.85 Sharpe), but Fold 8
+    regresses sharply (1.21 → 0.82), Fold 3 MaxDD worsens from −21% to −37%, and beat rate drops
+    from 5/8 to 4/8. Not a clear win.
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     1. RUN 5 FULL RESULTS
+══════════════════════════════════════════ -->
+<div class="section">
+  <div class="section-title">Run 5 — Full Results (all 8 folds)</div>
+  <div class="tbl-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Fold</th>
+          <th>OOS Period</th>
+          <th>Port CAGR</th>
+          <th>Port Sharpe</th>
+          <th>QQQ Sharpe</th>
+          <th>Beat QQQ</th>
+          <th>Sortino</th>
+          <th>MaxDD</th>
+          <th>Beta</th>
+          <th>Turnover</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr class="row-green">
+          <td>1</td><td>2010 – 2011</td>
+          <td class="pos">+53.97%</td><td><strong>1.239</strong></td><td>0.529</td>
+          <td class="beat-yes">+0.71</td><td>2.774</td><td class="neu">−18.8%</td><td>1.16</td><td>15.5%</td>
+        </tr>
+        <tr class="row-yellow">
+          <td>2</td><td>2012 – 2013</td>
+          <td class="pos">+55.47%</td><td><strong>2.014</strong></td><td>1.884</td>
+          <td class="beat-close">+0.13</td><td>5.337</td><td class="pos">−11.7%</td><td>0.94</td><td>0.2%</td>
+        </tr>
+        <tr class="row-red">
+          <td>3</td><td>2014 – 2015</td>
+          <td class="neu">+14.58%</td><td><strong>0.535</strong></td><td>0.876</td>
+          <td class="beat-no">−0.34</td><td>0.747</td><td class="neg">−37.3%</td><td>1.24</td><td>3.7%</td>
+        </tr>
+        <tr class="row-yellow">
+          <td>4</td><td>2016 – 2017</td>
+          <td class="pos">+30.61%</td><td><strong>1.175</strong></td><td>1.374</td>
+          <td class="beat-close">−0.20</td><td>2.407</td><td class="pos">−10.0%</td><td>0.80</td><td>16.0%</td>
+        </tr>
+        <tr class="row-green">
+          <td>5</td><td>2018 – 2019</td>
+          <td class="pos">+33.85%</td><td><strong>1.169</strong></td><td>0.827</td>
+          <td class="beat-yes">+0.34</td><td>2.116</td><td class="pos">−12.4%</td><td>0.85</td><td>11.1%</td>
+        </tr>
+        <tr class="row-yellow">
+          <td>6</td><td>2020 – 2021</td>
+          <td class="pos">+37.65%</td><td><strong>1.294</strong></td><td>1.387</td>
+          <td class="beat-close">−0.09</td><td>1.976</td><td class="neg">−29.0%</td><td>0.93</td><td>13.7%</td>
+        </tr>
+        <tr class="row-green row-star">
+          <td>7</td><td>2022 – 2023</td>
+          <td class="pos">+48.99%</td><td><strong>1.190</strong></td><td>0.169</td>
+          <td class="beat-yes">+1.02</td><td>2.500</td><td class="neg">−29.9%</td><td>0.99</td><td>5.0%</td>
+        </tr>
+        <tr class="row-red">
+          <td>8</td><td>2024 – present</td>
+          <td class="pos">+24.15%</td><td><strong>0.824</strong></td><td>1.048</td>
+          <td class="beat-no">−0.22</td><td>1.766</td><td class="neg">−21.9%</td><td>0.85</td><td>4.4%</td>
+        </tr>
+        <tr class="row-avg">
+          <td colspan="2">AVG (8 folds)</td>
+          <td class="pos">+37.41%</td><td>1.180</td><td>0.887</td>
+          <td class="beat-yes">4 / 8</td><td>2.453</td><td class="neg">−21.4%</td><td>0.95</td><td>8.7%</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="tbl-note">
+    ★ Fold 7 = standout improvement this run (+0.85 Sharpe vs Run 4).
+    &nbsp;Row colours: Green = beat QQQ by ≥ 0.20 Sharpe. Yellow = within 0.20 either direction. Red = missed by > 0.20.
+    &nbsp;Port CAGR is absolute gross annualised, not excess vs QQQ.
+  </p>
+</div>
+
+<!-- ══════════════════════════════════════════
+     2. RUN 4 vs RUN 5 DELTA
+══════════════════════════════════════════ -->
+<div class="section">
+  <div class="section-title">Run 4 vs Run 5 — Fold-by-Fold Delta</div>
+  <div class="tbl-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Fold</th><th>OOS Period</th>
+          <th>R4 Sharpe</th><th>R5 Sharpe</th><th>Δ Sharpe</th>
+          <th>R4 Sortino</th><th>R5 Sortino</th><th>Δ Sortino</th>
+          <th>R4 MaxDD</th><th>R5 MaxDD</th><th>Δ MaxDD</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>1</td><td>2010 – 2011</td>
+          <td>0.81</td><td>1.239</td><td class="delta-pos">+0.43</td>
+          <td>1.39</td><td>2.774</td><td class="delta-pos">+1.38</td>
+          <td>−20.7%</td><td>−18.8%</td><td class="delta-pos">+1.9pp</td>
+        </tr>
+        <tr>
+          <td>2</td><td>2012 – 2013</td>
+          <td>1.82</td><td>2.014</td><td class="delta-pos">+0.19</td>
+          <td>6.59</td><td>5.337</td><td class="delta-neg">−1.25</td>
+          <td>−13.4%</td><td>−11.7%</td><td class="delta-pos">+1.7pp</td>
+        </tr>
+        <tr>
+          <td>3</td><td>2014 – 2015</td>
+          <td>0.60</td><td>0.535</td><td class="delta-neg">−0.07</td>
+          <td>0.78</td><td>0.747</td><td class="delta-neg">−0.03</td>
+          <td>−21.0%</td><td>−37.3%</td><td class="delta-neg">−16.3pp</td>
+        </tr>
+        <tr>
+          <td>4</td><td>2016 – 2017</td>
+          <td>1.43</td><td>1.175</td><td class="delta-neg">−0.26</td>
+          <td>3.38</td><td>2.407</td><td class="delta-neg">−0.97</td>
+          <td>−14.4%</td><td>−10.0%</td><td class="delta-pos">+4.4pp</td>
+        </tr>
+        <tr>
+          <td>5</td><td>2018 – 2019</td>
+          <td>1.39</td><td>1.169</td><td class="delta-neg">−0.22</td>
+          <td>3.23</td><td>2.116</td><td class="delta-neg">−1.11</td>
+          <td>−20.7%</td><td>−12.4%</td><td class="delta-pos">+8.3pp</td>
+        </tr>
+        <tr>
+          <td>6</td><td>2020 – 2021</td>
+          <td>1.28</td><td>1.294</td><td class="delta-pos">+0.01</td>
+          <td>2.30</td><td>1.976</td><td class="delta-neg">−0.32</td>
+          <td>−31.6%</td><td>−29.0%</td><td class="delta-pos">+2.6pp</td>
+        </tr>
+        <tr class="row-green">
+          <td>7 ★</td><td>2022 – 2023</td>
+          <td>0.34</td><td>1.190</td><td class="delta-pos"><strong>+0.85</strong></td>
+          <td>0.44</td><td>2.500</td><td class="delta-pos"><strong>+2.06</strong></td>
+          <td>−21.9%</td><td>−29.9%</td><td class="delta-neg">−8.0pp</td>
+        </tr>
+        <tr class="row-red">
+          <td>8</td><td>2024 – present</td>
+          <td>1.21</td><td>0.824</td><td class="delta-neg"><strong>−0.39</strong></td>
+          <td>2.89</td><td>1.766</td><td class="delta-neg"><strong>−1.12</strong></td>
+          <td>−19.7%</td><td>−21.9%</td><td class="delta-neg">−2.2pp</td>
+        </tr>
+        <tr class="row-avg">
+          <td colspan="2">AVG</td>
+          <td>1.11</td><td>1.18</td><td class="delta-pos">+0.07</td>
+          <td>2.63</td><td>2.45</td><td class="delta-neg">−0.18</td>
+          <td>−20.4%</td><td>−21.4%</td><td class="delta-neg">−1.0pp</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="tbl-note">
+    MaxDD Δ: positive = improvement (smaller drawdown in Run 5). Beat rate: Run 4 = 5/8 → Run 5 = 4/8.
+    Avg excess CAGR: Run 4 +16.89% → Run 5 +17.40% (+0.51pp).
+  </p>
+</div>
+
+<!-- ══════════════════════════════════════════
+     3. EXPERIMENT VERDICT
+══════════════════════════════════════════ -->
+<div class="section">
+  <div class="section-title">Experiment Verdict — Did clip_high = 50 Work?</div>
+
+  <div class="verdict-grid">
+
+    <!-- Fold 7: YES -->
+    <div class="verdict-card vc-yes">
+      <div class="vc-header">
+        <span class="vc-pill pill-yes">YES</span>
+        <div class="vc-fold-label">Fold 7 <span>2022 – 2023</span></div>
+      </div>
+      <div class="vc-metrics">
+        <div class="vc-metric">
+          <div class="m-label">Sharpe</div>
+          <div class="m-val pos">1.190 <span class="m-delta pos">(+0.85)</span></div>
+        </div>
+        <div class="vc-metric">
+          <div class="m-label">Sortino</div>
+          <div class="m-val pos">2.500 <span class="m-delta pos">(+2.06)</span></div>
+        </div>
+      </div>
+      <div class="vc-qval">
+        <strong>Q peaked at 45.6</strong> — above the old clip=30 ceiling,
+        below clip=50. 6 transient Q-spike alarms (max 476); all self-corrected
+        within 15 min.
+      </div>
+      <div class="vc-desc">
+        The extra headroom let the agent correctly value long positions through
+        the 2022 bear-then-recovery cycle. Clip=30 was pinning Q-values and
+        suppressing signal in this volatile regime.
+      </div>
+    </div>
+
+    <!-- Fold 6: NEUTRAL -->
+    <div class="verdict-card vc-neutral">
+      <div class="vc-header">
+        <span class="vc-pill pill-neu">NEUTRAL</span>
+        <div class="vc-fold-label">Fold 6 <span>2020 – 2021</span></div>
+      </div>
+      <div class="vc-metrics">
+        <div class="vc-metric">
+          <div class="m-label">Sharpe</div>
+          <div class="m-val neu">1.294 <span class="m-delta neu">(+0.01)</span></div>
+        </div>
+        <div class="vc-metric">
+          <div class="m-label">Sortino</div>
+          <div class="m-val neg">1.976 <span class="m-delta neg">(−0.32)</span></div>
+        </div>
+      </div>
+      <div class="vc-qval">
+        <strong>Q peaked at ~40.8</strong> — just above clip=30, well below
+        clip=50. Clip change had essentially no effect on this fold.
+      </div>
+      <div class="vc-desc">
+        MaxDD improved slightly (−31.6% → −29.0%), likely noise. The COVID
+        crash and 2020–21 bull market are not a regime where Bellman clipping
+        is the binding constraint.
+      </div>
+    </div>
+
+    <!-- Fold 8: NO -->
+    <div class="verdict-card vc-no">
+      <div class="vc-header">
+        <span class="vc-pill pill-no">NO</span>
+        <div class="vc-fold-label">Fold 8 <span>2024 – present</span></div>
+      </div>
+      <div class="vc-metrics">
+        <div class="vc-metric">
+          <div class="m-label">Sharpe</div>
+          <div class="m-val neg">0.824 <span class="m-delta neg">(−0.39)</span></div>
+        </div>
+        <div class="vc-metric">
+          <div class="m-label">Sortino</div>
+          <div class="m-val neg">1.766 <span class="m-delta neg">(−1.12)</span></div>
+        </div>
+      </div>
+      <div class="vc-qval">
+        <strong>Q reached 34.3</strong> — just above clip=30, below clip=50.
+        No Q-divergence alarms in this fold.
+      </div>
+      <div class="vc-desc">
+        In Run 4, clip=30 provided implicit regularisation that restrained
+        overconfident position sizing in the 2024 bull market. Removing that
+        ceiling let the agent overfit to aggressive training returns that did
+        not generalise OOS.
+      </div>
+    </div>
+
+  </div><!-- /verdict-grid -->
+
+  <div class="verdict-conclusion">
+    <strong>Conclusion:</strong> clip=50 is fold-dependent. The same looser ceiling that fixes Fold 7
+    (Q needed range 30–46) breaks Fold 8 (Q only needed range 30–34 — clip=30 was providing useful
+    resistance). Net avg Sharpe gained only +0.07 while beat rate fell from 5/8 to 4/8.
+    &nbsp;&nbsp;<strong>Recommendation for Run 6:</strong> revert to clip_high = 30, or test 35 as a
+    one-step compromise. Do not use 50 again without per-fold Q-range diagnostics.
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     4. KEY FLAGS
+══════════════════════════════════════════ -->
+<div class="section">
+  <div class="section-title">Key Flags — Investigate Before Run 6</div>
+  <div class="tbl-wrap">
+    <table class="flags-table">
+      <thead>
+        <tr>
+          <th style="text-align:left; width:55%">Flag</th>
+          <th style="text-align:center; width:10%">Severity</th>
+          <th style="text-align:left; width:35%">Recommended Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>
+            <span class="flag-name">Fold 5 cost_drag = 31.41%</span>
+            <span class="flag-desc">
+              The formula divides total transaction costs by net compounded P&L. One holiday-week
+              trade (week of 2019-11-25, portfolio +27.1% while QQQ +0.6%) likely incurred ~20% of
+              NAV in market-impact cost in a single step. That single event dominates the numerator.
+              Investigate <code>cost_t</code> values in reward_components around that date.
+            </span>
+          </td>
+          <td style="text-align:center;"><span class="sev-yellow">YELLOW</span></td>
+          <td class="action-text">
+            Check if single-week cost_t &gt; 0.10. Review metrics.py formula — using gross P&L
+            in denominator would be more stable. Consider a hard trade-size cap during holiday
+            windows, separate from the cost penalty.
+          </td>
+        </tr>
+        <tr>
+          <td>
+            <span class="flag-name">Fold 3 MaxDD −37.3%</span>
+            <span class="flag-desc">
+              Significant regression from −21.0% in Run 4. Beta rose 0.96 → 1.24.
+              clip=50 allowed more aggressive sizing; the agent took concentrated exposure in
+              Nasdaq growth names that underperformed QQQ idiosyncratically in mid-2015
+              (Chinese equity bubble burst, biotech/momentum rotation). Not a data or
+              training failure — regime mismatch amplified by higher beta.
+            </span>
+          </td>
+          <td style="text-align:center;"><span class="sev-yellow">YELLOW</span></td>
+          <td class="action-text">
+            Reverting clip to 30 likely reduces beta and recovers most of the MaxDD improvement.
+            Also check model_ep2.pt checkpoint — if beta is lower in Ep2 vs Ep3, the higher
+            clip is causing final-episode overconfidence.
+          </td>
+        </tr>
+        <tr>
+          <td>
+            <span class="flag-name">Folds 2 &amp; 4 kurtosis &gt; 50, skewness &gt; 6</span>
+            <span class="flag-desc">
+              Each fold has one extreme spike week: F2 = +25.6% on 2013-09-16 (QQQ +0.03%);
+              F4 = +28.9% on 2017-01-03 (QQQ −1.1%). Both are post-holiday reopen weeks.
+              The holiday ADV discount traps the agent in concentrated positions over thin-market
+              windows; when volume returns, those positions move violently. These two weeks
+              are materially boosting Sharpe in both folds — removing them would substantially
+              weaken the results.
+            </span>
+          </td>
+          <td style="text-align:center;"><span class="sev-yellow">YELLOW</span></td>
+          <td class="action-text">
+            Consider reducing HOLIDAY_PRE_DAYS from 14 → 7. A 7-day window still captures thin
+            markets without creating 2-week position traps. Evaluate impact specifically on
+            F2 (Sep 2013) and F4 (Jan 2017) before applying to Run 6.
+          </td>
+        </tr>
+        <tr>
+          <td>
+            <span class="flag-name">Fold 8 hit rate = 39.82%</span>
+            <span class="flag-desc">
+              Only fold with a statistically significant sub-50% hit rate (p = 0.038, binomial test).
+              Agent beats QQQ only ~40% of weeks in the 2024–present bull market. The strategy is
+              too diversified for a regime where NVDA, MSFT, META, and 3–4 other mega-caps drive
+              most of QQQ's weekly return. Still profitable (Sharpe 0.82) via a skewed payoff ratio
+              — wins are larger than losses — but structurally misaligned with the AI-concentration era.
+            </span>
+          </td>
+          <td style="text-align:center;"><span class="sev-red">RED</span></td>
+          <td class="action-text">
+            Structural limitation; will not be fixed by hyperparameter changes alone.
+            Long-term: consider regime detection or concentration-targeting features.
+            For Run 6 scope: note and monitor; do not attempt to fix in this cycle.
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     5. RECOMMENDATIONS FOR RUN 6
+══════════════════════════════════════════ -->
+<div class="section">
+  <div class="section-title">Recommendations for Run 6</div>
+  <div class="recs">
+    <div class="rec-item">
+      <div class="rec-num">1</div>
+      <div class="rec-body">
+        <strong>Revert bellman_clip_high to 30, or test 35 as a one-step compromise</strong>
+        <p>clip=50 was net negative: +0.07 avg Sharpe gain masked a 5/8 → 4/8 beat-rate drop and a severe
+        Fold 8 regression. clip=30 provided implicit regularisation that was actually needed for the
+        2024 bull market regime. If you want to probe whether 35 preserves Fold 7 gains (Q peaked
+        at 45.6, so clip=35 would still constrain it), run a targeted single-fold experiment on Fold 7
+        before committing to a full run.</p>
+      </div>
+    </div>
+    <div class="rec-item">
+      <div class="rec-num">2</div>
+      <div class="rec-body">
+        <strong>Diagnose Fold 5 cost_drag before starting Run 6</strong>
+        <p>grep reward_components or apex_run.log for cost_t values in Fold 5's OOS window around
+        2019-11-25. If a single week shows cost_t &gt; 0.10 (10% of NAV), the holiday discount is
+        not adequately suppressing large trades in thin markets. Consider a hard per-step trade-size
+        cap during holiday windows. Also review whether the metrics.py cost_drag formula should use
+        gross P&L (before costs) rather than net P&L in the denominator.</p>
+      </div>
+    </div>
+    <div class="rec-item">
+      <div class="rec-num">3</div>
+      <div class="rec-body">
+        <strong>Check model_ep2.pt checkpoint for Fold 3 before attributing MaxDD solely to clip</strong>
+        <p>Beta rose 0.96 → 1.24. If beta is lower at the end of Ep2 vs Ep3, the MaxDD regression is
+        an Ep3-specific overconfidence effect that the clip change amplified. Compare OOS metrics using
+        the Ep2 checkpoint vs the Ep3 (final) checkpoint for Fold 3 — this would confirm whether
+        reverting the clip fully recovers performance or whether deeper changes are needed.</p>
+      </div>
+    </div>
+    <div class="rec-item">
+      <div class="rec-num">4</div>
+      <div class="rec-body">
+        <strong>Consider reducing HOLIDAY_PRE_DAYS from 14 to 7</strong>
+        <p>The 14-day pre-holiday window may be too wide: it creates two-week periods where the agent
+        holds concentrated positions it cannot cheaply rebalance, which then produce extreme return spikes
+        when full volume returns. A 7-day window (one trading week before the holiday) would still capture
+        the thin-market environment without trapping the agent in prolonged illiquid exposure.
+        Evaluate impact on Fold 2 (Sep 2013) and Fold 4 (Jan 2017) specifically before applying broadly.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     6. CROSS-RUN TRACKER
+══════════════════════════════════════════ -->
+<div class="section">
+  <div class="section-title">Cross-Run Tracker — Key Averages Over Time</div>
+  <div class="tbl-wrap">
+    <table class="tracker-table">
+      <thead>
+        <tr>
+          <th>Run</th>
+          <th>Date</th>
+          <th>Key Change</th>
+          <th>Avg Sharpe</th>
+          <th>Avg Sortino</th>
+          <th>Avg Excess CAGR</th>
+          <th>Beat QQQ</th>
+          <th>Avg MaxDD</th>
+          <th>Notes</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>2</td>
+          <td style="white-space:nowrap">2026-03-13/14</td>
+          <td>Baseline — first full 8-fold run</td>
+          <td class="neu">1.25 *</td>
+          <td class="neu">154.0 *</td>
+          <td class="neu">+58.2% *</td>
+          <td class="neu">—</td>
+          <td>−27.5%</td>
+          <td style="color:var(--red)">Metrics bug: Sharpe/Sortino computed on excess returns. All values are Information Ratios. Do not compare to Runs 3–5.</td>
+        </tr>
+        <tr>
+          <td>3</td>
+          <td style="white-space:nowrap">2026-03-16/17</td>
+          <td>Fix Sharpe/Sortino to raw returns</td>
+          <td class="neg">0.29</td>
+          <td class="neg">0.82</td>
+          <td class="neg">+4.89%</td>
+          <td class="neg">3 / 8</td>
+          <td>−22.3%</td>
+          <td style="color:var(--muted)">First clean-metric run. Folds 4, 5, 8 deeply negative. Pre-feature-fix era (vix_change, qqq_vol_4w).</td>
+        </tr>
+        <tr>
+          <td>4</td>
+          <td style="white-space:nowrap">2026-03-20</td>
+          <td>vix_4w_trend, qqq_ret_52w, λ_slow 0.75→0.50, clip=30</td>
+          <td class="pos">1.11</td>
+          <td class="pos">2.63</td>
+          <td class="pos">+16.89%</td>
+          <td class="pos">5 / 8</td>
+          <td>−20.4%</td>
+          <td style="color:var(--muted)">Large improvement. Folds 4, 5, 8 all fixed. Fold 7 weak (0.34). Primary benchmark run.</td>
+        </tr>
+        <tr class="run-current">
+          <td>5</td>
+          <td style="white-space:nowrap">2026-03-22/23</td>
+          <td>clip=50, holiday ADV discount, per-ep checkpoints</td>
+          <td class="pos">1.18</td>
+          <td class="neg">2.45</td>
+          <td class="pos">+17.40%</td>
+          <td class="neg">4 / 8</td>
+          <td>−21.4%</td>
+          <td style="color:var(--yellow)">Fold 7 fixed (+0.85 Sharpe). Fold 8 regressed (−0.39). Fold 3 MaxDD worsened. Mixed verdict.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="note-asterisk">
+    * Run 2 Sharpe and Sortino are artifacts: both were computed on excess returns (portfolio − QQQ),
+    producing Information Ratios rather than Sharpe/Sortino ratios. The Sortino of 154 and CAGR of +58%
+    are not comparable to Runs 3–5 which use raw portfolio returns. Run 2 MaxDD is the only valid figure.
+  </p>
+</div>
+
+<!-- ══════════════════════════════════════════
+     FOOTER
+══════════════════════════════════════════ -->
+<div class="footer">
+  <span>Project Apex · Run 5 · Generated 2026-03-23</span>
+  <span>bellman_clip_high=50 · lambda_slow=0.50 · updates_per_step=20 · holiday_adv_discount=0.50 · HOLIDAY_PRE_DAYS=14</span>
+</div>
+
+</body>
+</html>
