@@ -26,7 +26,6 @@ from features.portfolio_state_features import (
     compute_portfolio_state,
     N_PORTFOLIO_STATE_FEATURES,
 )
-
 # Offset of portfolio-state slice inside g  (9 macro + 3 benchmark = 12)
 _PORT_STATE_OFFSET = 9 + 3
 

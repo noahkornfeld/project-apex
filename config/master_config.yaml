@@ -46,7 +46,7 @@ sac:
 
   # §8.11  Bellman Target Clipping
   bellman_clip_low:  -30.0           # Floor for z_target clamp; prevents Q-value divergence on crash data
-  bellman_clip_high:  30.0           # Ceiling for z_target clamp (reward ±5 × n_step=4 → R_n max ≈ ±19)
+  bellman_clip_high:  30.0           # Ceiling for z_target clamp; confirmed correct in Run 6 (reverted from 35)
 
 # =============================================================================
 # §8.3–8.6  REPLAY BUFFER
